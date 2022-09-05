@@ -34,7 +34,7 @@ services:
             KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
             #KEYCLOAK_IMPORT: ./tmp/import-realm.json
 
-            PROXY_ADDRESS_FORWARDING: true            # autorisé les redirection ( NGINX ) 
+            PROXY_ADDRESS_FORWARDING: 'true'           # autorisé les redirection ( NGINX ) 
 
             # Uncomment the line below if you want to specify JDBC parameters.
             # The parameter below is just an example, and it shouldn't be used in production without knowledge.
@@ -73,3 +73,7 @@ networks:
       name: sso_bd
     swag:
       name: swag_nginx
+
+########################
+# via github on récupére le projet puis on le déploi de la manière suivant 
+# docker compose up -d 
