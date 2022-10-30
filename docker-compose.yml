@@ -21,7 +21,9 @@ services:
             -   ${KEYCLOAK_PORT_HTTPS}
 
         volumes:
-            -   ./keycloak_home/realm-export:/tmp/import-realm.json         # Exporter des domaines de keycloak
+            -   ./keycloak_home/realm-export:/tmp/import-realm.json                     # Exporter des domaines de keycloak
+            -   ./keycloak/scripts:/opt/jboss/startup-scripts/disable-theme-cache.cli
+            -   ./keycloak/themes:/opt/jboss/keycloak/themes/custom                     # dossier de customisation des thèmes
 
         environment:
             DB_VENDOR: postgres                       # Le type de fournisseur de base de données
@@ -32,7 +34,7 @@ services:
 
             KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
             KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
-            #KEYCLOAK_IMPORT: ./tmp/import-realm.json
+            KEYCLOAK_IMPORT: /tmp/import-realm.json   # localisation des domaines a importé
 
             PROXY_ADDRESS_FORWARDING: 'true'           # autorisé les redirection ( NGINX ) 
 
@@ -42,7 +44,7 @@ services:
             #JDBC_PARAMS: "ssl=true"
 
         networks:
-            -  keycloak_jenkins
+            -  keycloak_postgre
             -  swag
 
     ######################################################
@@ -63,13 +65,13 @@ services:
             POSTGRES_DB: ${POSTGRESQL_DB}
 
         networks:
-            -   keycloak_jenkins
+            -   keycloak_postgre
 
 ####################################################################
 # réseau bridge nommé swag_nginx créer via le docker compose de swag 
 # réseau bridge nomme sso_bd connexion entre keycloak et postgres 
 networks:
-    keycloak_jenkins:
+    keycloak_postgre:
       name: sso_bd
     swag:
       name: swag_nginx
