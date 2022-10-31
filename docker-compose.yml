@@ -20,10 +20,12 @@ services:
             -   ${KEYCLOAK_PORT_HTTP}
             -   ${KEYCLOAK_PORT_HTTPS}
 
+        user: "${UID}:${GID}"
+
         volumes:
-            -   ./keycloak_home/realm-export:/tmp/import-realm.json                     # Exporter des domaines de keycloak
-            -   ./keycloak/scripts:/opt/jboss/startup-scripts/disable-theme-cache.cli
-            -   ./keycloak/themes:/opt/jboss/keycloak/themes/custom                     # dossier de customisation des thèmes
+            -   ./keycloak_home/realm-export/realm-export.json:/tmp/import-realm.json                     # Exporter des domaines de keycloak
+            -   ./keycloak_home/scripts/disable-theme-cache.cli:/opt/jboss/startup-scripts/disable-theme-cache.cli
+            -   ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom                     # dossier de customisation des thèmes
 
         environment:
             DB_VENDOR: postgres                       # Le type de fournisseur de base de données
@@ -79,3 +81,6 @@ networks:
 ########################
 # via github on récupére le projet puis on le déploi de la manière suivant 
 # docker compose up -d 
+# avec les variable UID="$(id -u)" GID="$(id -g)"
+# lancer la commande 
+# UID=${UID} GID=${GID} docker-compose up -d
