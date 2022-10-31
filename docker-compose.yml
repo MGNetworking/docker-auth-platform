@@ -30,7 +30,7 @@ services:
             -   ${KEYCLOAK_PORT_HTTPS}
 
         volumes:
-            -   ./keycloak_home/realm-export:/tmp/import-realm.json                     # Exporter des domaines de keycloak
+            #-   ./keycloak_home/realm-export:/tmp/import-realm.json                     # Exporter des domaines de keycloak
             #-   ./keycloak_home/scripts/disable-theme-cache.cli:/opt/jboss/startup-scripts/disable-theme-cache.cli
             -   ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom                     # dossier de customisation des thèmes
 
