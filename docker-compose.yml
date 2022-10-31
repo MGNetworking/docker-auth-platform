@@ -7,24 +7,31 @@ version: '3.8'
 
 services:
 
+    # NB : Le volume ./keycloak_home/realm-export doit déjà être créer et contenir un fichier import-realm.json
+    # avant le lancement.
+    # Si vous n'avez pas de fichier d'importation (import-realm.json) ce volume doit être commenter 
+    # Dans le cas contraire cela provoquera une erreur d'identité.
+    # Si tout les volumes sont commenter, vous devez commenter l'annotation volumes aussi ;)
+
     ######################################################
     # configuration de Keycloak
     keycloak:
         depends_on:
             - postgres
 
-        image: jboss/keycloak:latest
+        # ancienne version
+        # image: jboss/keycloak:latest
+
+        image: quay.io/keycloak/keycloak:12.0.4
         container_name: keycloak
         restart: always
         ports:
             -   ${KEYCLOAK_PORT_HTTP}
             -   ${KEYCLOAK_PORT_HTTPS}
 
-        user: "${UID}:${GID}"
-
         volumes:
-            -   ./keycloak_home/realm-export/realm-export.json:/tmp/import-realm.json                     # Exporter des domaines de keycloak
-            -   ./keycloak_home/scripts/disable-theme-cache.cli:/opt/jboss/startup-scripts/disable-theme-cache.cli
+            -   ./keycloak_home/realm-export:/tmp/import-realm.json                     # Exporter des domaines de keycloak
+            #-   ./keycloak_home/scripts/disable-theme-cache.cli:/opt/jboss/startup-scripts/disable-theme-cache.cli
             -   ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom                     # dossier de customisation des thèmes
 
         environment:
@@ -36,7 +43,7 @@ services:
 
             KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
             KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
-            KEYCLOAK_IMPORT: /tmp/import-realm.json   # localisation des domaines a importé
+            #KEYCLOAK_IMPORT: /tmp/import-realm.json   # localisation des domaines a importé
 
             PROXY_ADDRESS_FORWARDING: 'true'           # autorisé les redirection ( NGINX ) 
 
@@ -49,6 +56,7 @@ services:
             -  keycloak_postgre
             -  swag
 
+
     ######################################################
     # Configuration de postgres
     postgres:
@@ -57,6 +65,8 @@ services:
         restart: always
         ports:
             -   ${POSTGRESQL_PORT}
+
+        
 
         volumes:
             -   ./postgres_home/postgres_data:/var/lib/postgresql/data:rw     # dossier de persistance quand le conteneur à l'arrêt
