@@ -7,13 +7,22 @@ version: '3.8'
 
 services:
 
+    # NB : Le volume ./keycloak_home/realm-export doit déjà être créer et contenir un fichier import-realm.json
+    # avant le lancement.
+    # Si vous n'avez pas de fichier d'importation (import-realm.json) ce volume doit être commenter 
+    # Dans le cas contraire cela provoquera une erreur d'identité.
+    # Si tout les volumes sont commenter, vous devez commenter l'annotation volumes aussi ;)
+
     ######################################################
     # configuration de Keycloak
     keycloak:
         depends_on:
             - postgres
 
-        image: jboss/keycloak:latest
+        # ancienne version
+        # image: jboss/keycloak:latest
+
+        image: quay.io/keycloak/keycloak:12.0.4
         container_name: keycloak
         restart: always
         ports:
@@ -21,8 +30,9 @@ services:
             -   ${KEYCLOAK_PORT_HTTPS}
 
         volumes:
-            -   ./keycloak_home/realm-export:/tmp/import-realm.json         # Exporter des domaines de keycloak
-
+            #-   ./keycloak_home/realm-export:/tmp/import-realm.json         # Exporter des domaines de keycloak
+            #-   ./keycloak_home/scripts/disable-theme-cache.cli:/opt/jboss/startup-scripts/disable-theme-cache.cli
+            -   ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom  
         environment:
             DB_VENDOR: postgres                       # Le type de fournisseur de base de données
             DB_ADDR: postgres                         # Le nom d'hote de la base de données
