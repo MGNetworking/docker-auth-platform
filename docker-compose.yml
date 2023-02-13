@@ -16,41 +16,34 @@ services:
     ######################################################
     # configuration de Keycloak
     keycloak:
+        user: ${UID}
         depends_on:
             - postgres
-
-        # ancienne version
-        # image: jboss/keycloak:latest
-
-        image: quay.io/keycloak/keycloak:12.0.4
-        container_name: keycloak
+        image: jboss/keycloak:latest
+        container_name: ${name_container}
         restart: always
         ports:
             -   ${KEYCLOAK_PORT_HTTP}
             -   ${KEYCLOAK_PORT_HTTPS}
 
         volumes:
-            #-   ./keycloak_home/realm-export:/tmp/import-realm.json                     # Exporter des domaines de keycloak
-            #-   ./keycloak_home/scripts/disable-theme-cache.cli:/opt/jboss/startup-scripts/disable-theme-cache.cli
-            -   ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom                     # dossier de customisation des thèmes
+            -  ./keycloak_home/realms:/tmp/realm-export.json
+            -  ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom
 
         environment:
             DB_VENDOR: postgres                       # Le type de fournisseur de base de données
             DB_ADDR: postgres                         # Le nom d'hote de la base de données
             DB_DATABASE: ${POSTGRESQL_DB}             # Le nom de la base de données
+            DB_SCHEMA: ${POSTGRESQL_SCHEMA}           # le nom du schema dans la base de données
             DB_USER: ${POSTGRESQL_USER}               # Le nom du user base de données
             DB_PASSWORD: ${POSTGRESQL_PASS}           # Le mot de passe de l'utilisateur de la base de données
 
-            KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
-            KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
-            #KEYCLOAK_IMPORT: /tmp/import-realm.json   # localisation des domaines a importé
+            # gestion de l'utilisateurs admin de Keycloak
+            KEYCLOAK_USER: ${KEYCLOAK_USER}                 # Le nom de l'utilisateur de keycloak
+            KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}             # Le mot de passe de keycloak
+            #KEYCLOAK_IMPORT: /tmp/realm-export.json        # localisation des domaines a importer
 
-            PROXY_ADDRESS_FORWARDING: 'true'           # autorisé les redirection ( NGINX ) 
-
-            # Uncomment the line below if you want to specify JDBC parameters.
-            # The parameter below is just an example, and it shouldn't be used in production without knowledge.
-            # It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
-            #JDBC_PARAMS: "ssl=true"
+            PROXY_ADDRESS_FORWARDING: 'true'           # autorisé les redirection ( NGINX )
 
         networks:
             -  keycloak_postgre
@@ -66,10 +59,9 @@ services:
         ports:
             -   ${POSTGRESQL_PORT}
 
-        
 
         volumes:
-            -   ./postgres_home/postgres_data:/var/lib/postgresql/data:rw     # dossier de persistance quand le conteneur à l'arrêt
+            -   ./postgres_home/postgres_data:/var/lib/postgresql/data     # dossier de persistance quand le conteneur à l'arrêt
 
         environment:
             POSTGRES_USER: ${POSTGRESQL_USER}
