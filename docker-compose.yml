@@ -19,12 +19,11 @@ services:
         user: ${UID}
         depends_on:
             - postgres
-        image: jboss/keycloak:latest
+        image: quay.io/keycloak/keycloak:legacy
         container_name: ${name_container}
         restart: always
         ports:
             -   ${KEYCLOAK_PORT_HTTP}
-            -   ${KEYCLOAK_PORT_HTTPS}
 
         volumes:
             -  ./keycloak_home/realms:/tmp/realm-export.json
