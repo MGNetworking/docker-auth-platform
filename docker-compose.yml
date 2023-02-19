@@ -19,8 +19,7 @@ services:
         user: ${UID}
         depends_on:
             - postgres
-        # 12.0.4
-        # legacy
+
         image: quay.io/keycloak/keycloak:legacy
         container_name: ${name_container}
         restart: always
@@ -40,14 +39,15 @@ services:
             DB_PASSWORD: ${POSTGRESQL_PASS}           # Le mot de passe de l'utilisateur de la base de données
 
             # gestion de l'utilisateurs admin de Keycloak
-            KEYCLOAK_HOSTNAME: localhost                    # définit le nom d'hôte (hostname) que Keycloak
-            KEYCLOAK_HTTP_PORT: 8888                        # définit le port host
-            KEYCLOAK_LOGLEVEL: TRACE                        # TRACE : Informations de débogage les plus détaillées. Très haute fréquence
-            KEYCLOAK_USER: ${KEYCLOAK_USER}                 # Le nom de l'utilisateur de keycloak
-            KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}             # Le mot de passe de keycloak
-            #KEYCLOAK_IMPORT: /tmp/realm-export.json        # localisation des domaines a importer
+            KEYCLOAK_HOSTNAME: keycloak               # définit le nom d'hôte (hostname) que Keycloak
+            KEYCLOAK_HTTP_PORT: 8888                  # définit le port host
+            KEYCLOAK_LOGLEVEL: TRACE                  # TRACE : Informations de débogage les plus détaillées. Très haute fréquence
+            KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
+            KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
+            #KEYCLOAK_IMPORT: /tmp/realm-export.json  # localisation des domaines a importer
 
-            PROXY_ADDRESS_FORWARDING: 'true'           # autorisé les redirection ( NGINX )
+            PROXY_ADDRESS_FORWARDING: "true"    # autorisé les redirection ( NGINX )
+            JAVA_OPTS: "-Xms1024m -Xmx2048m"    # configuration de la mémoire de keycloak
 
         networks:
             -  keycloak_postgre
