@@ -16,44 +16,47 @@ services:
     ######################################################
     # configuration de Keycloak
     keycloak:
+        user: ${UID}
         depends_on:
             - postgres
 
-        # ancienne version
-        # image: jboss/keycloak:latest
+        image: quay.io/keycloak/keycloak:legacy
+        container_name: ${name_container}
 
-        image: quay.io/keycloak/keycloak:12.0.4
-        container_name: keycloak
         restart: always
         ports:
             -   ${KEYCLOAK_PORT_HTTP}
-            -   ${KEYCLOAK_PORT_HTTPS}
 
         volumes:
-            #-   ./keycloak_home/realm-export:/tmp/import-realm.json         # Exporter des domaines de keycloak
-            #-   ./keycloak_home/scripts/disable-theme-cache.cli:/opt/jboss/startup-scripts/disable-theme-cache.cli
-            -   ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom  
+
+            -  ./keycloak_home/realms:/tmp/realm-export.json
+            -  ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom
+
         environment:
             DB_VENDOR: postgres                       # Le type de fournisseur de base de données
             DB_ADDR: postgres                         # Le nom d'hote de la base de données
             DB_DATABASE: ${POSTGRESQL_DB}             # Le nom de la base de données
+            DB_SCHEMA: ${POSTGRESQL_SCHEMA}           # le nom du schema dans la base de données
             DB_USER: ${POSTGRESQL_USER}               # Le nom du user base de données
             DB_PASSWORD: ${POSTGRESQL_PASS}           # Le mot de passe de l'utilisateur de la base de données
 
+            # gestion de l'utilisateurs admin de Keycloak
+            KEYCLOAK_HOSTNAME: keycloak               # définit le nom d'hôte (hostname) que Keycloak
+            KEYCLOAK_HTTP_PORT: 8888                  # définit le port host
+            KEYCLOAK_LOGLEVEL: TRACE                  # TRACE : Informations de débogage les plus détaillées. Très haute fréquence
             KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
             KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
-            KEYCLOAK_IMPORT: /tmp/import-realm.json
 
-            PROXY_ADDRESS_FORWARDING: 'true'           # autorisé les redirection ( NGINX ) 
+            #KEYCLOAK_IMPORT: /tmp/realm-export.json  # localisation des domaines a importer
 
-            # Uncomment the line below if you want to specify JDBC parameters.
-            # The parameter below is just an example, and it shouldn't be used in production without knowledge.
-            # It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
-            #JDBC_PARAMS: "ssl=true"
+
+            PROXY_ADDRESS_FORWARDING: "true"    # autorisé les redirection ( NGINX )
+            JAVA_OPTS: "-Xms1024m -Xmx2048m"    # configuration de la mémoire de keycloak
 
         networks:
-            -  keycloak_jenkins
+            -  keycloak_postgre
             -  swag
+
 
     ######################################################
     # Configuration de postgres
@@ -64,8 +67,9 @@ services:
         ports:
             -   ${POSTGRESQL_PORT}
 
+
         volumes:
-            -   ./postgres_home/postgres_data:/var/lib/postgresql/data:rw     # dossier de persistance quand le conteneur à l'arrêt
+            -   ./postgres_home/postgres_data:/var/lib/postgresql/data     # dossier de persistance quand le conteneur à l'arrêt
 
         environment:
             POSTGRES_USER: ${POSTGRESQL_USER}
@@ -73,13 +77,13 @@ services:
             POSTGRES_DB: ${POSTGRESQL_DB}
 
         networks:
-            -   keycloak_jenkins
+            -   keycloak_postgre
 
 ####################################################################
 # réseau bridge nommé swag_nginx créer via le docker compose de swag 
 # réseau bridge nomme sso_bd connexion entre keycloak et postgres 
 networks:
-    keycloak_jenkins:
+    keycloak_postgre:
       name: sso_bd
     swag:
       name: swag_nginx
@@ -87,3 +91,6 @@ networks:
 ########################
 # via github on récupére le projet puis on le déploi de la manière suivant 
 # docker compose up -d 
+# avec les variable UID="$(id -u)" GID="$(id -g)"
+# lancer la commande 
+# UID=${UID} GID=${GID} docker-compose up -d
