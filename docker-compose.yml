@@ -37,10 +37,10 @@ services:
             DB_ADDR: postgres                         # Le nom d'hote de la base de données
             DB_DATABASE: ${POSTGRESQL_DB}             # Le nom de la base de données
             DB_SCHEMA: ${POSTGRESQL_SCHEMA}           # le nom du schema dans la base de données
-            DB_USER: ${POSTGRESQL_USER}               # Le nom du user base de données
+            DB_USER: ${POSTGRESQL_USER}               # Le nom de l'user base de données
             DB_PASSWORD: ${POSTGRESQL_PASS}           # Le mot de passe de l'utilisateur de la base de données
 
-            # résolution du nom d'host interne de keycloak dans docker en mode dev
+            # résolution du nom d'HOST interne de keycloak dans le docker en mode dev
             KEYCLOAK_HOSTNAME: ${HOSTNAME}            # permet l'accès dans le réseau local pour le dev
             KEYCLOAK_HTTP_PORT: ${PORT}               # définit le port host interne
 
@@ -89,7 +89,7 @@ networks:
       name: swag_nginx
 
 ########################
-# via github on récupére le projet puis on le déploi de la manière suivant 
+# via github, on récupère le projet puis on le déploie de la manière suivant
 # docker compose up -d 
 # avec les variable UID="$(id -u)" GID="$(id -g)"
 # lancer la commande 
