@@ -1,4 +1,4 @@
-# Keycloak et PostgreSQL
+# Keycloak / PostgresSQL
 
 * [Lancement](#Lancement)
 * [Commandes](#Les commandes)
@@ -6,8 +6,8 @@
 
 ### Lancement
 Au 1er lancement
-* Le docker compose créera les répertoires avec l'utilisateur root, il faudra tous les modifiés
-* Le schéma de base de données dans PostgreSQL , cela créera une erreur pour keycloak.
+* Le docker compose, créera les répertoires avec l'utilisateur root, il faudra tous les modifiés
+* Le schéma de base de données dans PostgresSQL, cela créera une erreur pour keycloak.
 il faudra le créer et le relancer.
 
 ### Les commandes 
