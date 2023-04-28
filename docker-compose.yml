@@ -6,89 +6,64 @@
 version: '3.8'
 
 services:
+  #############################
+  # configuration de Keycloak #
+  #############################
+  keycloak:
+    depends_on:
+      - postgres
+    image: quay.io/keycloak/keycloak:legacy
+    container_name: keycloak
+    restart: always
+    ports:
+      - ${KEYCLOAK_PORT_HTTP}
+    volumes:
+      - $PWD/keycloak_home/tmp:/tmp
+      - $PWD/keycloak_home/var:/var/lib/postgresql/data
+    environment:
+      DB_VENDOR: postgres                       # Le type de fournisseur de base de données
+      DB_ADDR: postgres                         # Le nom d'hote de la base de données
+      DB_DATABASE: ${POSTGRESQL_DB}             # Le nom de la base de données
+      DB_SCHEMA: public                         # le nom du schema dans la base de données
+      DB_USER: ${POSTGRESQL_USER}               # Le nom du user base de données
+      DB_PASSWORD: ${POSTGRESQL_PASS}           # Le mot de passe de l'utilisateur de la base de données
 
-    # NB : Le volume ./keycloak_home/realm-export doit déjà être créer et contenir un fichier import-realm.json
-    # avant le lancement.
-    # Si vous n'avez pas de fichier d'importation (import-realm.json) ce volume doit être commenter 
-    # Dans le cas contraire cela provoquera une erreur d'identité.
-    # Si tout les volumes sont commenter, vous devez commenter l'annotation volumes aussi ;)
+      # résolution du nom d'host interne de keycloak dans docker en mode dev
+      #KEYCLOAK_HOSTNAME: ${HOSTNAME}           # permet l'accès dans le réseau local pour le dev
+      KEYCLOAK_HOSTNAME: localhost              # permet l'accès dans le réseau local pour le dev
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}       # définit le port host interne
+      KEYCLOAK_LOGLEVEL: INFO                   # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
+      KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
+      KEYCLOAK_IMPORT: /tmp/realm-export.json   # localisation des domaines a importer
 
-    ######################################################
-    # configuration de Keycloak
-    keycloak:
-        user: ${UID}
-        depends_on:
-            - postgres
+      PROXY_ADDRESS_FORWARDING: "true"    # autorisé les redirection ( NGINX )
+      JAVA_OPTS: "-Xms1024m -Xmx2048m"    # configuration de la mémoire de keycloak
 
-        image: quay.io/keycloak/keycloak:legacy
-        container_name: ${name_container}
+    networks:
+      - keycloak_postgre
+      - swag
 
-        restart: always
-        ports:
-            -   ${KEYCLOAK_PORT_HTTP}
+  #############################
+  # Configuration de postgres #
+  #############################
+  postgres:
+    image: postgres:latest
+    container_name: postgres-db
+    restart: always
+    ports:
+      - ${POSTGRESQL_PORT}
+    #volumes:
+       #- $PWD/postgres_home:/var/lib/postgresql/data          # dossier de persistance quand le conteneur à l'arrêt
+    environment:
+      POSTGRES_USER: ${POSTGRESQL_USER}
+      POSTGRES_PASSWORD: ${POSTGRESQL_PASS}
+      POSTGRES_DB: ${POSTGRESQL_DB}
+    networks:
+      - keycloak_postgre
 
-        volumes:
-            -  ./keycloak_home/realms:/tmp/realm-export.json
-            -  ./keycloak_home/themes/custom:/opt/jboss/keycloak/themes/custom
-
-        environment:
-            DB_VENDOR: postgres                       # Le type de fournisseur de base de données
-            DB_ADDR: postgres                         # Le nom d'hote de la base de données
-            DB_DATABASE: ${POSTGRESQL_DB}             # Le nom de la base de données
-            DB_SCHEMA: ${POSTGRESQL_SCHEMA}           # le nom du schema dans la base de données
-            DB_USER: ${POSTGRESQL_USER}               # Le nom du user base de données
-            DB_PASSWORD: ${POSTGRESQL_PASS}           # Le mot de passe de l'utilisateur de la base de données
-
-            # résolution du nom d'host interne de keycloak dans docker en mode dev
-            KEYCLOAK_HOSTNAME: ${HOSTNAME}            # permet l'accès dans le réseau local pour le dev
-            KEYCLOAK_HTTP_PORT: ${PORT}               # définit le port host interne
-
-            KEYCLOAK_LOGLEVEL: TRACE                  # TRACE : Informations de débogage les plus détaillées. Très haute fréquence
-            KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
-            KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
-            #KEYCLOAK_IMPORT: /tmp/realm-export.json  # localisation des domaines a importer
-
-            PROXY_ADDRESS_FORWARDING: "true"    # autorisé les redirection ( NGINX )
-            JAVA_OPTS: "-Xms1024m -Xmx2048m"    # configuration de la mémoire de keycloak
-
-        networks:
-            -  keycloak_postgre
-            -  swag
-
-
-    ######################################################
-    # Configuration de postgres
-    postgres:
-        image: postgres:latest
-        container_name: postgres
-        restart: always
-        ports:
-            -   ${POSTGRESQL_PORT}
-
-
-        volumes:
-            -   ./postgres_home/postgres_data:/var/lib/postgresql/data     # dossier de persistance quand le conteneur à l'arrêt
-
-        environment:
-            POSTGRES_USER: ${POSTGRESQL_USER}
-            POSTGRES_PASSWORD: ${POSTGRESQL_PASS}
-            POSTGRES_DB: ${POSTGRESQL_DB}
-
-        networks:
-            -   keycloak_postgre
-
-####################################################################
-# réseau bridge nommé swag_nginx créer via le docker compose de swag 
-# réseau bridge nomme sso_bd connexion entre keycloak et postgres 
 networks:
-    keycloak_postgre:
-      name: sso_bd
-    swag:
-      name: swag_nginx
-
-########################
-# via github on récupére le projet puis on le déploi de la manière suivant 
-# docker compose up -d 
-# avec les variable UID="$(id -u)" GID="$(id -g)"
-# lancer la commande 
-# UID=${UID} GID=${GID} docker-compose up -d
+  keycloak_postgre:
+    name: sso_bd
+  swag:
+    name: swag_nginx
