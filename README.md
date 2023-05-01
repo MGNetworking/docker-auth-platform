@@ -5,6 +5,17 @@
 * [Documentation](#Documentation)
 
 ### Lancement
+Avant de lancer ce script vérifier que le service docker soit en cours d'excution  
+Sur ubuntu
+```shell
+sudo service docker status
+```
+Ou verifier qu'il y a un processus docker en cours d'excution, cela permettra d'avoir l'information
+sur l'état de docker 
+
+```shell
+docker version
+```
 
 Pour lancer l'exécution de ce projet après l'avoir récupéré de dépôt, vous devez modifier les droits
 d'exécution du fichier `init.sh`.
