@@ -1,2 +1,2 @@
-keycloak_home/
-postgres_home/
+/keycloak_home/*
+/postgres_home/*
