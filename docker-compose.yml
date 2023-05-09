@@ -35,7 +35,7 @@ services:
       KEYCLOAK_LOGLEVEL: DEBUG                  # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
       KEYCLOAK_USER: ${KEYCLOAK_USER}           # Le nom de l'utilisateur de keycloak
       KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}       # Le mot de passe de keycloak
-      KEYCLOAK_IMPORT: /config/*                # localisation des domaines a importer
+      KEYCLOAK_IMPORT: /config/realm-export.json                # localisation des domaines a importer
 
       PROXY_ADDRESS_FORWARDING: "true"    # autorisé les redirection ( NGINX )
       JAVA_OPTS: "-Xms1024m -Xmx2048m"    # configuration de la mémoire de keycloak
@@ -53,6 +53,7 @@ services:
     restart: always
     ports:
       - ${POSTGRESQL_PORT}
+
     #volumes:
        #- $PWD/postgres_home:/var/lib/postgresql/data          # dossier de persistance quand le conteneur à l'arrêt
     environment:
