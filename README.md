@@ -1,17 +1,20 @@
 # Keycloak / PostgresSQL
 
 * [Lancement](#Lancement)
-* [Commandes](#Commandes)
+* [Accès_PostgreSQL](#Accès_PostgreSQL)
 * [Documentation](#Documentation)
 
 ### Lancement
+
 Avant de lancer ce script vérifier que le service docker soit en cours d'excution  
 Sur ubuntu
+
 ```shell
 sudo service docker status
 ```
+
 Ou verifier qu'il y a un processus docker en cours d'excution, cela permettra d'avoir l'information
-sur l'état de docker 
+sur l'état de docker
 
 ```shell
 docker version
@@ -27,6 +30,22 @@ sudo chmod +x init.sh
 ```
 
 Ce script créera les dossiers `keycloak_home` et `postgres_home` avec les droits utilisateur de la session.
+
+## Accès_PostgreSQL
+
+L'accès au volume PostgreSQL exécuter la commande
+
+```shell
+docker exec -ti postgres-db bash
+```
+
+Puis dans le contneur postgres-db
+
+```shell
+cd /var/lib/postgresql/data
+```
+
+![/var/lib/postgresql/data](./dockerImage/dockerimages1.png)
 
 ### Documentation
 
