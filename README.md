@@ -31,6 +31,13 @@ sudo chmod +x init.sh
 
 Ce script créera les dossiers `keycloak_home` et `postgres_home` avec les droits utilisateur de la session.
 
+
+Lancement des script python
+```shell
+python3 [myScript.py]
+```
+
+
 ## Accès_PostgreSQL
 
 L'accès au volume PostgreSQL exécuter la commande

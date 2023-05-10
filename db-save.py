@@ -15,13 +15,10 @@ DATE_FORMAT = "%Y-%m-%d_%H-%M-%S"
 
 # Génération du nom de fichier pour la sauvegarde
 timestamp = datetime.datetime.now().strftime(DATE_FORMAT)
-filename = f"{DB_NAME}_backup_{timestamp}.sql"
+backup_filename = f"{DB_NAME}_backup_{timestamp}.sql"
 
-# Commande de sauvegarde de la base de données
-backup_command = f"pg_dump --dbname=postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME} > {os.path.join(BACKUP_DIR, filename)}"
-
-# Exécution de la commande de sauvegarde
-subprocess.call(backup_command, shell=True)
+# Commande de sauvegarde de la base de données avec Exécution de la commande de sauvegarde
+result = subprocess.run(f"docker exec -t postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -c > {BACKUP_DIR}/{backup_filename}", shell=True)
 
 # Affichage d'un message de confirmation
 print(f"La sauvegarde de la base de données {DB_NAME} a été créée avec succès.")
