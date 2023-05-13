@@ -10,7 +10,7 @@ DB_PASSWORD = "NzOgZsn29PewtEyQECEE"
 DB_NAME = "kc_db"
 
 # Configuration des paramètres de la sauvegarde
-BACKUP_DIR = "./postgres_home/backups"
+BACKUP_DIR = "${PWD}/postgres_home/backups"
 DATE_FORMAT = "%Y-%m-%d_%H-%M-%S"
 
 # Génération du nom de fichier pour la sauvegarde
