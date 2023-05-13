@@ -54,8 +54,10 @@ services:
     ports:
       - ${POSTGRESQL_PORT}
 
-    #volumes:
+    volumes:
+      - $PWD/postgres_home/backups:/var/backups:rw
       #- $PWD/postgres_home:/var/lib/postgresql/data          # dossier de persistance quand le conteneur à l'arrêt
+
     environment:
       POSTGRES_USER: ${POSTGRESQL_USER}
       POSTGRES_PASSWORD: ${POSTGRESQL_PASS}
