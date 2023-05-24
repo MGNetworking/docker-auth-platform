@@ -5,9 +5,9 @@ import os
 # Configuration des paramètres de la base de données
 DB_HOST = "localhost"
 DB_PORT = "5400"
-DB_USER = "kc_db"
+DB_USER = "max_admin"
 DB_PASSWORD = "NzOgZsn29PewtEyQECEE"
-DB_NAME = "max_admin"
+DB_NAME = "ghoverblog"
 
 # Configuration des paramètres de la sauvegarde
 BACKUP_DIR_host = "./postgres_home/backups"
