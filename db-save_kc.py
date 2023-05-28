@@ -1,3 +1,6 @@
+# Ce script permet de créer une sauvegarde de la base de bonne kc_db
+# Il créra un backup de la base de données avec clean
+
 import subprocess
 import datetime
 import os
@@ -26,7 +29,7 @@ backup_filename_SCHEMA = f"{DB_SCHEMA}_backup.sql.bak"
 
 # Commande de sauvegarde de la base de données avec Exécution de la commande de sauvegarde
 backup_command = f"docker exec -t postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -F c --clean -f {BACKUP_DIR_DB}/{backup_filename_DB}"
-print("1. Lancement de la sauveagde de la base de données kc_db avec processus de nettoyage des objets")
+print(f"1. Lancement de la sauveagde de la base de données {DB_NAME} avec processus de nettoyage des objets")
 subprocess.run(backup_command, shell=True)
 
 # Compression du fichier de sauvegarde
@@ -44,7 +47,7 @@ print(f"La sauvegarde de la base de données {DB_NAME} a été créée avec succ
 # Commande de sauvegarde de la base de données avec Exécution de la commande de sauvegarde
 # backup_command = f"docker exec -t postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -n {DB_SCHEMA} -F p -f {BACKUP_SCHEMA}/{backup_filename_SCHEMA}"
 backup_command = f"docker exec -t postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -n {DB_SCHEMA} -F p -f {BACKUP_DIR_SCHEMA}/{backup_filename_SCHEMA}"
-print("4. Lancement de la sauvegarde du schema kc_sh dans la base de données kc_db")
+print(f"4. Lancement de la sauvegarde du schema {DB_SCHEMA} dans la base de données kc_db")
 
 try:
     subprocess.run(backup_command, shell=True, check=True)
