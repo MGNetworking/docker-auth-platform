@@ -17,16 +17,11 @@ DB_PASSWORD = "NzOgZsn29PewtEyQECEE"
 DB_NAME = "kc_db"
 DB_SCHEMA="kc_sh"
 
-# Accès un fichier depuis extérieur du conteneur
-#BACKUP_DB = "./postgres_home/backups/kc_db"
-
 # chemin d'accès au fichier depuis l'intérieur du conteneur
-#BACKUP_DIR_DB = "/var/backups/kc_db"
 BACKUP_DIR_SCHEMA = "/docker-entrypoint-initdb.d"
-#DATE_FORMAT = "%d-%m-%Y_%H:%M:%S"
 DATE_FORMAT = "%d-%m-%Y_%H-%M-%S"
 
-###############################
+##########################################
 # Gestion du dossier pour le mois en cours
 
 # Obtention du mois et de l'année en cours
@@ -40,6 +35,9 @@ BACKUP_DB = f"./postgres_home/backups/kc_db/{mois_en_cours}_{annee_en_cours}"
 
 # Créer en fonction du mois en cours, accès depuis intérieur du conteneur
 BACKUP_DIR_DB = f"/var/backups/kc_db/{mois_en_cours}_{annee_en_cours}"
+
+# Création du répertoire des logs s'il n'existe pas
+os.makedirs(BACKUP_DB, exist_ok=True)
 
 # Création de chemin du dossier pour les log
 BACKUP_DB_LOG = f"{BACKUP_DB}/logfile.log"
@@ -58,14 +56,14 @@ logger = logging.getLogger()
 
 logger.info(f"SAUVEGARDE DB : DEBUT #################")
 print(f"SAUVEGARDE DB : DEBUT #################")
-print(f"1er parti Bachup Data Base {DB_NAME}")
-logger.info(f"1er parti Bachup Data Base {DB_NAME}")
+print(f"1er parti Backup Data Base {DB_NAME}")
+logger.info(f"1er parti Backup Data Base {DB_NAME}")
 
 # Vérification et création du dossier si nécessaire
 if not os.path.exists(BACKUP_DB):
     os.makedirs(BACKUP_DB)
-    print(f"1. Dossier : {BACKUP_DB} créé avec succès.")
-    logger.info(f"1. Dossier : {BACKUP_DB} créé avec succès.")
+    print(f"1. Dossier : {BACKUP_DB} à été créé avec succès.")
+    logger.info(f"1. Dossier : {BACKUP_DB}  à été  créé avec succès.")
 
 if os.path.exists(BACKUP_DB):
     print(f"1. Dossier : {BACKUP_DB} est présent")

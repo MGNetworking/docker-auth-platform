@@ -4,6 +4,7 @@ import psycopg2
 import tarfile
 import logging
 import datetime
+import shutil
 
 
 # Format de nom de fichier de sauvegarde
@@ -12,6 +13,7 @@ db_name = "kc_db"
 db_schema = "kc_sh"
 username = "max_admin"
 password = "NzOgZsn29PewtEyQECEE"
+port_Externe = "5400"
 
 
 # Obtention du mois et de l'année en cours
@@ -20,7 +22,7 @@ annee_en_cours = maintenant.year
 mois_en_cours = maintenant.month
 
 # Chemin du répertoire contenant les sauvegardes
-BACKUP_DB = f"backups/kc_db/{mois_en_cours}_{annee_en_cours}"
+BACKUP_DB = f"backups/{db_name}/{mois_en_cours}_{annee_en_cours}"
 backup_dir = os.path.join(os.getcwd(), "postgres_home", BACKUP_DB)
 
 ##### Gestion des logs
@@ -58,7 +60,7 @@ backup_path = os.path.join(backup_dir, latest_backup)
 print("Fichier compresser restauration trouvé : " + latest_backup)
 logger.info(f"Fichier compresser restauration trouvé : {latest_backup}")
 
-# Extraire l'archive
+# Extraire lde l'archive dans le fichier extracted
 extract_dir = os.path.join(backup_dir, "extracted")
 os.makedirs(extract_dir, exist_ok=True)
 
@@ -68,8 +70,8 @@ logger.info("2. Extraction du fichier en cours ...")
 try:
     with tarfile.open(backup_path, "r:gz") as tar:
         tar.extractall(extract_dir)
-    print("Archive à été extraite avec succès.")
-    logger.info("Archive à été extraite avec succès.")
+    print("L'archive à été extraite avec succès.")
+    logger.info("L'archive à été extraite avec succès.")
 
     # création de la commande de restaurer la base de données
     command = [
@@ -87,8 +89,8 @@ try:
         exit()
 
     dump_file = os.path.join(extract_dir, dump_files[0])
-
     print("Fichier de dump de restauration : " + dump_files[0])
+    logger.info(f"Fichier de dump de restauration : {dump_files[0]}" )
 
     print("3. Restauration de la base de données en cours...")
     logger.info("3. Restauration de la base de données en cours...")
@@ -96,8 +98,14 @@ try:
     print("4. Restauration terminée avec succès.")
     logger.info("4. Restauration terminée avec succès.")
 
+    # suppression du dossier d'extraction
+    print("5 Suppression du dossier d'extraction")
+    logger.info("5. Suppression du dossier d'extraction")
+    shutil.rmtree(f"{extract_dir}")
+    logger.info("Dossier extracted supprimer ")
+
     # Vérification de la restauration
-    conn = psycopg2.connect(dbname=db_name, user=username, password="NzOgZsn29PewtEyQECEE", host="localhost", port="5400")
+    conn = psycopg2.connect(dbname=db_name, user=username, password=password, host="localhost", port=port_Externe)
     cursor = conn.cursor()
     print("5. Vérification en cours ..." )
     logger.info("5. Vérification en cours ...")
@@ -108,10 +116,10 @@ try:
     conn.close()
 
     if table_count > 0:
-        print("La base de données restaurée contient ses " + str(table_count) + " tables.")
-        logger.info(f"La base de données restaurée contient ses {table_count} tables.")
+        print(f"La base de données {db_name} restaurée contient ses {table_count} tables.")
+        logger.info(f"La base de données {db_name} restaurée contient ses {table_count} tables.")
     else:
-        print("La base de données restaurée " + str(table_count) + " table" )
+        print(f"La base de données restaurée {table_count}table" )
         logger.info(f"La base de données restaurée {table_count} table")
 
 except subprocess.CalledProcessError as e:
