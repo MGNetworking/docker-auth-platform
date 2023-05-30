@@ -100,7 +100,7 @@ sudo chmod +x init.sh
 sudo chmod +x down.sh
 sudo chmod +x kc_sh_backup_RUNTIME.sh
 ```
-### Sauvegarde & Restauration
+### Sauvegarde-&-Restauration
 
 Lancement du script de **Sauvegarde** de la base de données `kc_db`
 ```shell
