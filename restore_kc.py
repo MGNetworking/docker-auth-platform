@@ -119,17 +119,18 @@ try:
         print(f"La base de données {db_name} restaurée contient ses {table_count} tables.")
         logger.info(f"La base de données {db_name} restaurée contient ses {table_count} tables.")
     else:
-        print(f"La base de données restaurée {table_count}table" )
-        logger.info(f"La base de données restaurée {table_count} table")
+        print(f"La base de données n'a restaurée aucune table " )
+        logger.info(f"La base de données restaurée aucune table")
 
 except subprocess.CalledProcessError as e:
     print("Erreur lors de la restauration de la base de données.")
-    print("Code d'erreur :", str(e.returncode))
+    print(f"Code d'erreur : {e.returncode} ")
     print("Message d'erreur :")
     print(e.stderr.decode())  # Afficher le message d'erreur complet de la sortie standard d'erreur (stderr)
 
     logger.error(f"Erreur lors de la restauration de la BD : {e.returncode}")
     logger.error(e.stderr.decode())
+
 except Exception as e:
     print("Une exception s'est produite lors de la restauration de la base de données :", str(e))
     logger.error(f"Une exception s'est produite lors de la restauration de la base de données : {e}")
