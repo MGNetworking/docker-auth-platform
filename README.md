@@ -3,7 +3,7 @@
 * [Information projet](#Information projet)
 * [Vérification](#Vérification)
   * [Lancement](#Lancement)
-  * [Sauvegarde & Restauration](Sauvegarde-&-Restauration)
+  * [Sauvegarde & Restauration](#Sauvegarde-et-Restauration)
 * [PostgreSQL](#PostgreSQL)
 * [Keycloak](#Keycloak)
 * [Documentation](#Documentation)
@@ -100,7 +100,7 @@ sudo chmod +x init.sh
 sudo chmod +x down.sh
 sudo chmod +x kc_sh_backup_RUNTIME.sh
 ```
-### Sauvegarde-&-Restauration
+### Sauvegarde-et-Restauration
 
 Lancement du script de **Sauvegarde** de la base de données `kc_db`
 ```shell
