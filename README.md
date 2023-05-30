@@ -3,10 +3,9 @@
 * [Information projet](#Information projet)
 * [Vérification](#Vérification)
   * [Lancement](#Lancement)
-  * [Sauvegarde](#Sauvegarde)
-  * [Restauration](#Restauration)
-* [Accès_PostgreSQL](#Accès_PostgreSQL)
-* [Accès_Keycloak](#Accès_Keycloak)
+  * [Sauvegarde & Restauration](#Sauvegarde)
+* [PostgreSQL](#PostgreSQL)
+* [Keycloak](#Keycloak)
 * [Documentation](#Documentation)
 
 ## Information projet
@@ -101,28 +100,34 @@ sudo chmod +x init.sh
 sudo chmod +x down.sh
 sudo chmod +x kc_sh_backup_RUNTIME.sh
 ```
+### Sauvegarde & Restauration
 
-* ### Sauvegarde
-* 
-Lancement du script de sauvegarde de la base de données `kc_db`
+Lancement du script de **Sauvegarde** de la base de données `kc_db`
 ```shell
 python3 db-save_kc.py 
 ```
+Lancement du script de **Sauvegarde** de la base de données `ghoverblog`
+```shell
+python3 db-save_blog.py 
+```
 
-### Restauration
-
-Lancement du script de restauration de la base de données `kc_db`
+Lancement du script de **Restauration** de la base de données `kc_db`
 ```shell
 python3 restore_kc.py 
 ```
 
-## Accès_PostgreSQL
+Lancement du script de restauration de la base de données `ghoverblog`
+```shell
+python3 restore_blog.py 
+```
+
+## PostgreSQL
 
 Accèder au serveur de base de données qui contient les bases de données suivant :
 * `kc-db` la base de données de keycloak le nom du schémas et `kc_sh`.
 * `ghoverblog` la base de données du site le nom du schémas et `ms_article`.
 
-Le username : `max_admin`
+Le username : `max_admin`  
 Le password de connection : `NzOgZsn29PewtEyQECEE`  
 
 L'accèder à la base de données postgres dans le conteneur `postgres-db`
@@ -143,23 +148,12 @@ psql -h [hôte] -p [port] -U [utilisateur] -d [base_de_données]
 psql -h 192.168.1.30 -p 5400 -U max_admin -d ghoverblog
 ```
 
-
-Lancement rapide du script de restauration de la base de données `ghoverblog`
-
-```shell
-python3 restore_blog.py
-```
-Lancement rapide du script de restauration de la base de données `kc_db` :
-```shell
-python3 restore_kc_db.py
-```
-
 Quelque commande CLI postgreSQL :
 * `\l` liste des utilisateurs est leur propriétaire
 * `\q` quitté la CLI `psql` de postgres
 
 
-## Accès_Keycloak 
+## Keycloak 
 
 l'accès ADMIN `maxime`  
 Le passeword ADMIN `IgGr488nzTMjkTo6WUPB`
