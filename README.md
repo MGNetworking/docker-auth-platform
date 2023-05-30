@@ -3,7 +3,7 @@
 * [Information projet](#Information projet)
 * [Vérification](#Vérification)
   * [Lancement](#Lancement)
-  * [Sauvegarde & Restauration](#Sauvegarde)
+  * [Sauvegarde & Restauration](#Sauvegarde-&-Restauration)
 * [PostgreSQL](#PostgreSQL)
 * [Keycloak](#Keycloak)
 * [Documentation](#Documentation)
