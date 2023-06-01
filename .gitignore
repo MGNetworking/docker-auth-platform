@@ -1,2 +1,6 @@
 .idea/
-/postgres_home/*
+
+.env
+/postgres_home/data/*
+/postgres_home/backups/*
+
