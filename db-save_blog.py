@@ -31,7 +31,7 @@ mois_en_cours = maintenant.month
 
 # Création du chemin d'accès au fichier pour la création du bachup DB
 # Créer en fonction du mois en cours, accès depuis extérieur du conteneur
-BACKUP_DB = f"./postgres_home/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
+BACKUP_DB = f"/home/max/Documents/projet/teste/docker-keycloak-postgres/postgres_home/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
 
 # Créer en fonction du mois en cours, accès depuis intérieur du conteneur
 BACKUP_DIR_DB = f"/var/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
@@ -152,6 +152,11 @@ try:
 	backup_command = f"docker exec -t postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -n {DB_SCHEMA} -F p -f {BACKUP_DIR_SCHEMA}/{backup_filename_SCHEMA}"
 	print(f"4. Lancement de la sauvegarde du schema {DB_SCHEMA} dans la base de données kc_db")
 	logger.info(f"4. Lancement de la sauvegarde du schema {DB_SCHEMA} dans la base de données kc_db")
+
+
+	# Suppression du fichier de sauvegarde existant (s'il existe)
+	if os.path.exists(f"{BACKUP_DIR_SCHEMA}/{backup_filename_SCHEMA}"):
+		os.remove(f"{BACKUP_DIR_SCHEMA}/{backup_filename_SCHEMA}")
 
 	result = subprocess.run(backup_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	# Affichage d'un message de confirmation

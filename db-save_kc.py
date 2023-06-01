@@ -15,6 +15,7 @@ DB_USER = "max_admin"
 DB_PASSWORD = "NzOgZsn29PewtEyQECEE"
 DB_NAME = "kc_db"
 DB_SCHEMA = "kc_sh"
+LogFile = "logfile.log"
 
 # chemin d'accès au fichier depuis l'intérieur du conteneur
 BACKUP_DIR_SCHEMA = "/docker-entrypoint-initdb.d"
@@ -30,7 +31,7 @@ mois_en_cours = maintenant.month
 
 # Création du chemin d'accès au fichier pour la création du bachup DB
 # Créer en fonction du mois en cours, accès depuis extérieur du conteneur
-DIR_BACKUP = f"./postgres_home/backups/kc_db/{mois_en_cours}_{annee_en_cours}"
+DIR_BACKUP = f"/home/max/Documents/projet/teste/docker-keycloak-postgres/postgres_home/backups/kc_db/{mois_en_cours}_{annee_en_cours}"
 
 # Créer en fonction du mois en cours, accès depuis intérieur du conteneur
 DIR_BACKUP_CONTENEUR = f"/var/backups/kc_db/{mois_en_cours}_{annee_en_cours}"
@@ -39,16 +40,17 @@ DIR_BACKUP_CONTENEUR = f"/var/backups/kc_db/{mois_en_cours}_{annee_en_cours}"
 os.makedirs(DIR_BACKUP, exist_ok=True)
 
 # Création de chemin du dossier pour les log
-BACKUP_DB_LOG = f"{DIR_BACKUP}/logfile.log"
-
-# Création du fichier de log vide s'il n'existe pas
-log_file = os.path.join(DIR_BACKUP, "logfile.log")
-if not os.path.exists(log_file):
-	open(log_file, "w").close()
+BACKUP_DB_LOG = f"{DIR_BACKUP}/{LogFile}"
 
 # Configuration du logger
 logging.basicConfig(filename=BACKUP_DB_LOG, filemode='a', level=logging.INFO,
 					format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Création du fichier de log vide s'il n'existe pas
+if not os.path.exists(BACKUP_DB_LOG):
+	open(BACKUP_DB_LOG, "w").close()
+
+
 
 # Utilisation du logger pour les messages de log
 logger = logging.getLogger()
