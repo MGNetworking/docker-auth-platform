@@ -66,15 +66,42 @@ Le script `restore_kc.py` permet de restauré la base de données `kc_db`  de ma
 script `restore_blog.py` permet de restauré la base de données `ghoverblog` de manière complet
 A la fin de chaque script, une vérification de l'état du schéma cible est exécuté.
 
+   
+6. Le Script `task_db.sh `
+Ce script permet de créer la planification de deux tâches de sauvegarde 
+des base de données `kc_db` pour keycloak et `ghoverblog` pour le blog
+Ces tâche seront exécuter à minuit chaque jour sur le serveur. 
+  
+L'édition d'une tâche dans cron :
+```shell
+crontab -e    # éditeur de text pour modification des tâches (éditeur par défaut)
+```
+Check sont status : `sudo service cron status`  
+Check la liste des tâches : `crontab -l`  
+Check les service crontab : `ps aux | grep cron`  
+Check le process ID : `pgrep cron`  
+Check sont fichier de config `sudo nano /etc/crontab`  
+Check dernier ligne du fichier d'entré `tail -f /var/log/syslog | grep "cron"`  
+Voir les log : `tail -f /var/log/syslog`  
+Sa journalisation `journalctl -u cron.service`
 
 ## Vérification
 
 Voici la liste des étapes a réalisé: 
 * Check du service docker 
-* Check des conteneur docker en cours d'exécution
-* Modification de l'accès au script `init.sh`
+* Check des conteneurs docker en cours d'exécution
+* Modification des accès au script 
+  * Fichier de lancement des conteneur : `init.sh` 
+  * Fichier de suppression des conteneur : `down.sh`
+ 
+Vérification des chemin absolus :
+  * Fichier de sauvegarde des base de données : `db-save_blog.py` et `db-save_kc.py`
+    * Vérification des chemins pour la sauvegarde des bases de données et des fichier de log
+  * Fichier de programmation des tâches : `task_db.sh`
+    * Vérification les chemin absolus pour ciblé les scripts et les log de celui-ci
+  
 
-Puis lancement du scrpt `init.sh`
+Lancement du script `init.sh`
 
 Check du service docker. Plusieurs commande permet de vérifier l'état du service.
 
@@ -96,10 +123,33 @@ avec les droits utilisateurs de la session avant le lancement.
 Voici la commande à exécuter pour rendre ce fichier exécutable :
 
 ```shell
-sudo chmod +x init.sh
-sudo chmod +x down.sh
-sudo chmod +x kc_sh_backup_RUNTIME.sh
+sudo chmod +x init.sh                   # Lancement et création des conteneurs
+sudo chmod +x down.sh                   # Arrêt et Suppression des conteneurs 
+sudo chmod +x kc_sh_backup_RUNTIME.sh   # Backup Schema kc_sh pour le DEV
+sudo chmod +x task_db.sh                # planification des taches Crontab
 ```
+
+1. Lancer les conteneurs
+```shell
+./init.sh
+```
+2. Arréter et supprimer les conteneurs
+```shell
+./down.sh
+```
+
+3. Lancer un Backup pour le schema `kc_sh` placer dans le répertoir init du conteneur `postgres-db`
+```shell
+./kc_sh_backup_RUNTIME.sh
+```
+4. Lancer de la programmation des tâches gérer par le service `crontab`
+```shell
+./task_db.sh
+```
+NB: Les fichiers exécuté par `crontab` doivent possèder les chemins absolut vers 
+les reperoires de création des backup et des logs.
+Vous devrez vérifier a chaque installation que les chemins absolut soit bien référencer. 
+
 ### Sauvegarde-et-Restauration
 
 Lancement du script de **Sauvegarde** de la base de données `kc_db`
@@ -173,3 +223,6 @@ Le passeword ADMIN `IgGr488nzTMjkTo6WUPB`
 * La documenation de ce projet , voir le [docker hub](https://hub.docker.com/_/postgres)
 * La version de ce
   projet [postgres:15.2-bullseye](https://hub.docker.com/layers/library/postgres/15.2-bullseye/images/sha256-6b91d38a9c596fa4e6a1276f6f81810882d9f292a09f9cf2647c6a554c8b6d00?context=explore)
+
+3. Other
+    * Le planificateur de [tâches crontab](https://www.linuxtricks.fr/wiki/cron-et-crontab-le-planificateur-de-taches) 
