@@ -47,24 +47,23 @@ services:
     env_file:
       - .env
     environment:
-      DB_VENDOR: POSTGRES                       # Le type de fournisseur de base de données
-      DB_ADDR: postgres                         # Le nom d'hote de la base de données
-      DB_DATABASE: ${KEYCLOAK_DB}               # Le nom de la base de données
-      DB_SCHEMA: ${KEYCLOAK_SCHEMA}             # le nom du schema dans la base de données
-      DB_USER: ${PG_KC_USER}               # Le nom du user base de données
-      DB_PASSWORD: ${PG_KC_PASS}           # Le mot de passe de l'utilisateur de la base de données
+      DB_VENDOR: POSTGRES                         # Le type de fournisseur de base de données
+      DB_ADDR: postgres                           # Le nom d'hote de la base de données
+      DB_DATABASE: ${KEYCLOAK_DB}                 # Le nom de la base de données
+      DB_SCHEMA: ${KEYCLOAK_SCHEMA}               # le nom du schema dans la base de données
+      DB_USER: ${PG_KC_USER}                      # Le nom du user base de données
+      DB_PASSWORD: ${PG_KC_PASS}                  # Le mot de passe de l'utilisateur de la base de données
 
       # résolution du nom d'host interne de keycloak dans docker en mode dev
-      #KEYCLOAK_HOSTNAME: ${HOSTNAME}             # permet l'accès par le nom de domain (interne au conteneur)
-      KEYCLOAK_HOSTNAME: localhost                # permet l'accès par le nom de domain (interne au conteneur)
+      KEYCLOAK_HOSTNAME: ${HOSTNAME}              # permet l'accès par le nom de domain (interne au conteneur)
       KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}         # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
       KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
       KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
       KEYCLOAK_IMPORT: /config/realm-export.json  # localisation des domaines a importer
 
-      PROXY_ADDRESS_FORWARDING: "true"    # autorisé les redirection ( NGINX )
-      JAVA_OPTS: "-Xms1024m -Xmx2048m"    # configuration de la mémoire de keycloak
+      PROXY_ADDRESS_FORWARDING: "true"            # autorisé les redirection ( NGINX )
+      JAVA_OPTS: "-Xms1024m -Xmx2048m"            # configuration de la mémoire de keycloak
     networks:
       - keycloak_postgre
       - swag
