@@ -51,7 +51,7 @@ services:
       DB_PASSWORD: ${PG_KC_PASS}                  # Le mot de passe de l'utilisateur de la base de données
 
       # résolution du nom d'host interne de keycloak dans docker en mode dev
-      KEYCLOAK_HOSTNAME: ${HOSTNAME}              # permet l'accès par le nom de domain (interne au conteneur)
+      KEYCLOAK_HOSTNAME: 192.168.1.30                # permet l'accès par le nom de domain (interne au conteneur)
       KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}         # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
       KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
