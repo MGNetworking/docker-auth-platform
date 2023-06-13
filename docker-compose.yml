@@ -50,8 +50,11 @@ services:
       DB_USER: ${PG_KC_USER}                      # Le nom du user base de données
       DB_PASSWORD: ${PG_KC_PASS}                  # Le mot de passe de l'utilisateur de la base de données
 
-      # résolution du nom d'host interne de keycloak dans docker en mode dev
-      KEYCLOAK_HOSTNAME: 192.168.1.30                # permet l'accès par le nom de domain (interne au conteneur)
+      # Résolution du nom d'host interne de keycloak dans docker
+      # Permet l'accès par le nom de domain (interne au conteneur)
+      KEYCLOAK_HOSTNAME: ${HOSTNAME_PRE}          # Sur le serveur de pre production
+      #KEYCLOAK_HOSTNAME: ${HOSTNAME_PROD}        # Sur le serveur de production
+
       KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}         # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
       KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
@@ -74,4 +77,3 @@ networks:
     name: swag_nginx
     external: true    # indic qui ce connectera au réseau existant blog-network
     driver: bridge    # indic le type de réseau docker
-
