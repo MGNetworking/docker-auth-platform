@@ -14,7 +14,7 @@ sudo chmod -R 770 postgres_home/data
 sudo chmod -R 770 keycloak_home
 
 # Démarrage du conteneur Jenkins avec Docker Compose
-docker compose up -d
+docker-compose up -d
 
 # voir les logs
-docker compose logs -f
+docker-compose logs -f
