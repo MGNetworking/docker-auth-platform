@@ -5,8 +5,8 @@ mkdir -p postgres_home/backups
 mkdir -p postgres_home/data
 
 # changer le propriétaire et le groupe du dossier
-sudo chown -R max:docker postgres_home
-sudo chown -R max:docker keycloak_home
+sudo chown -R maxime:docker postgres_home
+sudo chown -R maxime:docker keycloak_home
 
 # Accorde les permissions en lecture / écriture / exécution
 sudo chmod -R 770 postgres_home/backups
