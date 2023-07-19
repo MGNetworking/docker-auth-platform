@@ -36,7 +36,7 @@ services:
     image: quay.io/keycloak/keycloak:legacy
     restart: always
     ports:
-      - ${KEYCLOAK_PORT_HTTP}
+      - ${KEYCLOAK_PORT_HTTP_NAS}
     volumes:
       - ./keycloak_home/config:/config                                           # import config realm and user
       - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog  # import themes
