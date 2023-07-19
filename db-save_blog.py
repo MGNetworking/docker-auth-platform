@@ -5,6 +5,7 @@ import subprocess
 import datetime
 import os
 import logging
+import sys
 
 ##########################################
 # Gestion des variables
