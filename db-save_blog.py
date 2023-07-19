@@ -39,7 +39,6 @@ BACKUP_DB = os.path.join(dossier_actuel, 'backups/ghoverblog', f"{mois_en_cours}
 # Créer en fonction du mois en cours, accès depuis extérieur du conteneur
 # BACKUP_DB = f"/home/max/Documents/projet/teste/docker-keycloak-postgres/postgres_home/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
 
-
 # Créer en fonction du mois en cours, accès depuis intérieur du conteneur
 BACKUP_DIR_DB = f"/var/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
 
@@ -156,11 +155,15 @@ except subprocess.CalledProcessError as e:
         message = "Une erreur s'est produite lors de la sauvegarde : fichier de sortie inexistant."
         print(message)
         logger.error(message)
+        # Quittez le programme avec un code de sortie non nul (1)
+        sys.exit(1)
 
     else:
         message = "Une autre erreur s'est produite lors de la sauvegarde."
         print(message)
         logger.error(message)
+        # Quittez le programme avec un code de sortie non nul (1)
+        sys.exit(1)
 
 try:
 
