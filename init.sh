@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # création du dossier
-mkdir -p postgres_home/backups
+mkdir -p postgres_home/backups/ghoverblog
+mkdir -p postgres_home/backups/kc_db
 mkdir -p postgres_home/data
 
 # changer le propriétaire et le groupe du dossier
