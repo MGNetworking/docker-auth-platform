@@ -55,8 +55,11 @@ services:
       KEYCLOAK_HOSTNAME: ${HOSTNAME_NAS}          # Sur le serveur Nas synology
       KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_NAS}     # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
-      KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
-      KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
+      
+      # Si la base de données est déjà créer , as besoin d'utilisé les paramétre ci-dessous 
+      # Ces paramétre sont pour 1er création de la base de données keycloak UNIQUEMENT 
+      #KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
+      #KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
       KEYCLOAK_IMPORT: /config/realm-export.json  # localisation des domaines a importer
 
       PROXY_ADDRESS_FORWARDING: "true"            # autorisé les redirection ( NGINX )
