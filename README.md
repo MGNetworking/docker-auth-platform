@@ -1,6 +1,6 @@
 # Keycloak / PostgresSQL
 
-* [Information projet](#Information projet)
+* [Information projet](#Information-projet)
 * [Python](#Python)
 * [Vérification](#Vérification)
     * [Lancement](#Lancement)
@@ -126,11 +126,9 @@ Puis activer l'environnement virtuel :
 source env/bin/activate
 ```
 
-###                    
-
 ## Vérification
 
-Voici la liste des étapes a réalisé:
+Voici la liste des étapes a réalisé :
 
 * Check du service docker
 * Check des conteneurs docker en cours d'exécution
@@ -193,14 +191,14 @@ sudo chmod +x task_db.sh                # planification des taches Crontab
 ./kc_sh_backup_RUNTIME.sh
 ```
 
-4. Lancer de la programmation des tâches gérer par le service `crontab`
+4. Lancer de la programmation des tâches géré par le service `crontab`
 
 ```shell
 ./task_db.sh
 ```
 
-NB: Les fichiers exécuté par `crontab` doivent possèder les chemins absolut vers
-les reperoires de création des backup et des logs.
+NB : Les fichiers exécutés par `crontab` doivent posséder les chemins absolut vers
+les repertoires de création des `backup` et des logs.
 Vous devrez vérifier a chaque installation que les chemins absolut soit bien référencer.
 
 ### Sauvegarde-et-Restauration
@@ -231,21 +229,21 @@ python3 restore_blog.py
 
 ## PostgreSQL
 
-Accèder au serveur de base de données qui contient les bases de données suivant :
+Accéder au serveur de base de données qui contient les bases de données suivantes :
 
-* `kc-db` la base de données de keycloak le nom du schémas et `kc_sh`.
-* `ghoverblog` la base de données du site le nom du schémas et `ms_article`.
+* `kc-db` la base de données de keycloak le nom du schéma et `kc_sh`.
+* `ghoverblog` la base de données du site le nom du schéma et `ms_article`.
 
 Le username : `max_admin`  
 Le password de connection : `NzOgZsn29PewtEyQECEE`
 
-L'accèder à la base de données postgres dans le conteneur `postgres-db`
+L'accéder à la base de données postgres dans le conteneur `postgres-db`
 
 ```shell
 docker exec -ti postgres-db bash
 ```
 
-Puis dans le conteneur `postgres-db` accèder a la CLI `psql`
+Puis dans le conteneur `postgres-db` accéder à la CLI `psql`
 
 ```shell
 psql -U max_admin -d  kc_db
