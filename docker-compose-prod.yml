@@ -52,10 +52,8 @@ services:
 
       # Résolution du nom d'host interne de keycloak dans docker
       # Permet l'accès par le nom de domain (interne au conteneur)
-      KEYCLOAK_HOSTNAME: ${HOSTNAME_PRE}          # Sur le serveur de pre production
-      #KEYCLOAK_HOSTNAME: ${HOSTNAME_PROD}        # Sur le serveur de production
-
-      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}         # définit le port host interne
+      KEYCLOAK_HOSTNAME: ${HOSTNAME_PROD}         # Sur le serveur de production
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_prod}    # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
       KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
       KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
@@ -65,7 +63,6 @@ services:
       JAVA_OPTS: "-Xms1024m -Xmx2048m"            # configuration de la mémoire de keycloak
     networks:
       - keycloak_postgre
-      - swag
     depends_on:
       - postgres
 
@@ -73,7 +70,3 @@ networks:
   keycloak_postgre:
     name: sso_bd
     driver: bridge
-  swag:
-    name: swag_nginx
-    external: true    # indic qui ce connectera au réseau existant blog-network
-    driver: bridge    # indic le type de réseau docker
