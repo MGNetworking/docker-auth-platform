@@ -104,9 +104,12 @@ backup_filename_DB = f"{DB_NAME}_backup_{timestamp}.dump"
 compressed_filename_DB = f"{DB_NAME}_backup_{timestamp}.tar.gz"
 backup_filename_SCHEMA = f"{DB_SCHEMA}_backup.sql.bak"
 
+# pour l'écriture dans le conteneur
+path = f"/var/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
+
 try:
     # Commande de sauvegarde de la base de données avec clean des anciennnes tables
-    backup_command = f"docker exec -t postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -F c --clean -f {BACKUP_DIR_DB}/{backup_filename_DB}"
+    backup_command = f"docker exec postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -F c --clean -f {path}/{backup_filename_DB}"
     message = f"2. Lancement de la sauvegarde de la base de données {DB_SCHEMA} avec processus de nettoyage des objets"
     print(message)
     logger.info(message)
