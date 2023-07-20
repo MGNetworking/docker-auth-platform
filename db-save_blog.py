@@ -40,11 +40,21 @@ BACKUP_DB = os.path.join(dossier_actuel, 'backups/ghoverblog', f"{mois_en_cours}
 # Créer en fonction du mois en cours, accès depuis extérieur du conteneur
 # BACKUP_DB = f"/home/max/Documents/projet/teste/docker-keycloak-postgres/postgres_home/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
 
+# nas
+# BACKUP_DIR_DB = f"/volume1/docker/docker-keycloak-postgres/postgres_home/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
+
 # Créer en fonction du mois en cours, accès depuis intérieur du conteneur
+# nas
 BACKUP_DIR_DB = f"/var/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
 
-# Création du répertoire des logs s'il n'existe pas
-os.makedirs(BACKUP_DB, exist_ok=True)
+# Crée le dossier avec les permissions par défaut (peut être écrit par l'utilisateur courant)
+os.makedirs(BACKUP_DIR_DB, exist_ok=True)
+
+# Changer les permissions pour que le dossier appartienne à l'utilisateur root
+os.chown(BACKUP_DIR_DB, 0, 0)  # (uid=0, gid=0)
+
+# Changer les permissions pour que le dossier soit accessible en écriture pour l'utilisateur root
+os.chmod(BACKUP_DIR_DB, 0o700)  # 0o700 signifie que seul l'utilisateur root peut écrire dans le dossier
 
 # Création de chemin du dossier pour les log
 BACKUP_DB_LOG = f"{BACKUP_DB}/logfile.log"
