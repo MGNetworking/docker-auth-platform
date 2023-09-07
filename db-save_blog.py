@@ -40,22 +40,40 @@ BACKUP_DB = os.path.join(dossier_actuel, 'backups/ghoverblog', f"{mois_en_cours}
 # Créer en fonction du mois en cours, accès depuis extérieur du conteneur
 # BACKUP_DB = f"/home/max/Documents/projet/teste/docker-keycloak-postgres/postgres_home/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
 
-# Créer en fonction du mois en cours, accès depuis intérieur du conteneur
-BACKUP_DIR_DB = f"/var/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
+# nas
+BACKUP_DIR_DB = f"/volume1/docker/docker-keycloak-postgres/postgres_home/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
 
-# Création du répertoire des logs s'il n'existe pas
-os.makedirs(BACKUP_DB, exist_ok=True)
+# Créer en fonction du mois en cours, accès depuis intérieur du conteneur
+# nas
+# BACKUP_DIR_DB = f"/var/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
+
+try:
+    # Crée le dossier avec les permissions par défaut (peut être écrit par l'utilisateur courant)
+    os.makedirs(BACKUP_DIR_DB, exist_ok=True)
+
+    # Changer les permissions pour que le dossier appartienne à l'utilisateur root
+    os.chown(BACKUP_DIR_DB, 0, 0)  # (uid=0, gid=0)
+
+    # Changer les permissions pour que le dossier soit accessible en écriture pour l'utilisateur root
+    os.chmod(BACKUP_DIR_DB, 0o700)  # 0o700 signifie que seul l'utilisateur root peut écrire dans le dossier
+
+    print("Chemin du dossier de sauvegarde :", os.path.abspath(BACKUP_DIR_DB))
+    print("Dossier créé avec succès et les permissions ont été modifiées pour appartenir à l'utilisateur root.")
+except OSError as e:
+    print("Une erreur s'est produite lors de la création du dossier ou de la modification des permissions:", str(e))
+    # Quittez le programme avec un code de sortie non nul (1)
+    sys.exit(1)
 
 # Création de chemin du dossier pour les log
-BACKUP_DB_LOG = f"{BACKUP_DB}/logfile.log"
+# BACKUP_DB_LOG = f"{BACKUP_DIR_DB}/logfile.log"
 
 # Création du fichier de log vide s'il n'existe pas
-log_file = os.path.join(BACKUP_DB, "logfile.log")
+log_file = os.path.join(BACKUP_DIR_DB, "logfile.log")
 if not os.path.exists(log_file):
     open(log_file, "w").close()
 
 # Configuration du logger
-logging.basicConfig(filename=BACKUP_DB_LOG, filemode='a', level=logging.INFO,
+logging.basicConfig(filename=log_file, filemode='a', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Utilisation du logger pour les messages de log
@@ -86,9 +104,12 @@ backup_filename_DB = f"{DB_NAME}_backup_{timestamp}.dump"
 compressed_filename_DB = f"{DB_NAME}_backup_{timestamp}.tar.gz"
 backup_filename_SCHEMA = f"{DB_SCHEMA}_backup.sql.bak"
 
+# pour l'écriture dans le conteneur
+path = f"/var/backups/ghoverblog/{mois_en_cours}_{annee_en_cours}"
+
 try:
     # Commande de sauvegarde de la base de données avec clean des anciennnes tables
-    backup_command = f"docker exec -t postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -F c --clean -f {BACKUP_DIR_DB}/{backup_filename_DB}"
+    backup_command = f"docker exec postgres-db pg_dump -U {DB_USER} -d {DB_NAME} -F c --clean -f {path}/{backup_filename_DB}"
     message = f"2. Lancement de la sauvegarde de la base de données {DB_SCHEMA} avec processus de nettoyage des objets"
     print(message)
     logger.info(message)
