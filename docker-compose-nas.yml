@@ -13,7 +13,9 @@ services:
   # Configuration de postgres
   postgres:
     container_name: postgres-db
-    image: postgres:alpine
+    container_name: jenkins
+    build:
+      context: .
     restart: unless-stopped
     ports:
       - ${PG_PORT}
