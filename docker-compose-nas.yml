@@ -14,7 +14,7 @@ services:
   postgres:
     container_name: postgres-db
     image: postgres:alpine
-    restart: always
+    restart: unless-stopped
     ports:
       - ${PG_PORT}
     volumes:
