@@ -12,8 +12,10 @@ volumes:
 services:
   # Configuration de postgres
   postgres:
-    container_name: postgres-db
     image: postgres:alpine
+    container_name: postgres-db
+    build:
+      context: .
     restart: always
     ports:
       - ${PG_PORT}
