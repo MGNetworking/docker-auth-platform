@@ -16,7 +16,7 @@ services:
     container_name: postgres-db
     build:
       context: .
-    restart: always
+    restart: unless-stopped
     ports:
       - ${PG_PORT}
     volumes:
