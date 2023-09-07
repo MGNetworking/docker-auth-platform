@@ -12,8 +12,8 @@ volumes:
 services:
   # Configuration de postgres
   postgres:
+    image: postgres:alpine
     container_name: postgres-db
-    container_name: jenkins
     build:
       context: .
     restart: unless-stopped
