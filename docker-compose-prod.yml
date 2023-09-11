@@ -12,13 +12,14 @@ volumes:
 services:
   # Configuration de postgres
   postgres:
-    image: postgres:alpine
+    image: postgres-ssh:alpine
     container_name: postgres-db
     build:
       context: .
     restart: unless-stopped
     ports:
       - ${PG_PORT}
+      - ${SSH_SFTP_PORT}
     volumes:
       - ./postgres_home/backups:/var/backups:rw
       - ./postgres_home/data:/var/lib/postgresql/data      # dossier de persistance quand le conteneur à l'arrêt
