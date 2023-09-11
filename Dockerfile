@@ -1,18 +1,29 @@
-# Utilisez l'image PostgreSQL comme point de départ
+# Utilisation de l'image PostgreSQL Alpine comme base
 FROM postgres:alpine
 
-# Créez un utilisateur SSH
-RUN adduser -D -s /bin/ash sshuser
+# Installation des packages nécessaires
+RUN apk update && \
+    apk upgrade && \
+    apk add openssh-server nano && \
+    rm -rf /var/cache/apk/*
 
-# Créez l'utilisateur "maxime"
-RUN adduser -D -s /bin/ash maxime
+# création de clef HostKey
+RUN ssh-keygen -A
 
-# Installez OpenSSH
-RUN apk update && apk add openssh
+COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
+COPY config_dockerfile/id_ed25519.pub /etc/ssh/id_ed25519.pub
+COPY config_dockerfile/sshd_entrypoint.sh /usr/local/bin/sshd_entrypoint.sh
 
+# rendre ce script exécutable
+RUN chmod +x /usr/local/bin/sshd_entrypoint.sh
 
-# Définissez le mot de passe pour l'utilisateur SSH
+# Créez un utilisateur pour SFTP
+RUN adduser -D -h /home/maxime -s /bin/bash maxime
+
+# création d'un mdp pour le user maxime
 RUN echo "maxime:fkfJocJBg6A6BI8rFwXh" | chpasswd
 
-# Exécutez SSH en arrière-plan
-CMD ["/usr/sbin/sshd", "-D"]
+# Exposer le port 22 pour SSH et SFTP
+EXPOSE 22
+
+ENTRYPOINT  ["/usr/local/bin/sshd_entrypoint.sh"]

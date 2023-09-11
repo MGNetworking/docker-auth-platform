@@ -12,13 +12,14 @@ volumes:
 services:
   # Configuration de postgres
   postgres:
-    image: postgres:alpine
+    image: postgres-ssh:alpine
     container_name: postgres-db
     build:
       context: .
     restart: unless-stopped
     ports:
       - ${PG_PORT}
+      - ${SSH_SFTP_PORT}
     volumes:
       - ./postgres_home/backups:/var/backups:rw
       - ./postgres_home/data:/var/lib/postgresql/data      # dossier de persistance quand le conteneur à l'arrêt
@@ -29,7 +30,7 @@ services:
       POSTGRES_DB: postgres                # base de données créer au lancement
       POSTGRES_USER: ${PG_KC_USER}         # Le User name de cette base de données
       POSTGRES_PASSWORD: ${PG_KC_PASS}     # Le Password de cette base de données
-    networks:
+    networks: # déclare les noms de connexion réseaux
       - keycloak_postgre
 
   # configuration de Keycloak
@@ -74,4 +75,4 @@ services:
 networks:
   keycloak_postgre:
     name: sso_bd
-    driver: bridge
+    driver: bridge # Utilise le mode de réseau "bridge" pour ce réseau
