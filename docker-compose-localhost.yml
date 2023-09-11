@@ -1,0 +1,78 @@
+######################################################
+# Service de gestion de la sécurité
+# Keycloak coupler avec postgres
+# utilise le protocole (OAuth 2)
+######################################################
+version: '3.8'
+
+volumes:
+  postgres_home:
+    driver: local
+
+services:
+  # Configuration de postgres
+  postgres:
+    image: postgres-ssh:alpine
+    container_name: postgres-db
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - ${PG_PORT}
+      - ${SSH_SFTP_PORT}
+    volumes:
+      - ./postgres_home/backups:/var/backups:rw
+      - ./postgres_home/data:/var/lib/postgresql/data      # dossier de persistance quand le conteneur à l'arrêt
+      - ./postgres_home/init:/docker-entrypoint-initdb.d   # Script d'exécution au lancement
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: postgres                # base de données créer au lancement
+      POSTGRES_USER: ${PG_KC_USER}         # Le User name de cette base de données
+      POSTGRES_PASSWORD: ${PG_KC_PASS}     # Le Password de cette base de données
+    networks: # déclare les noms de connexion réseaux
+      - keycloak_postgre
+
+  # configuration de Keycloak
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:legacy
+    restart: always
+    ports:
+      - ${KEYCLOAK_PORT_HTTP_NAS}
+    volumes:
+      - ./keycloak_home/config:/config                                           # import config realm and user
+      - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog  # import themes
+    env_file:
+      - .env
+    environment:
+      DB_VENDOR: POSTGRES                         # Le type de fournisseur de base de données
+      DB_ADDR: postgres                           # Le nom d'hote de la base de données
+      DB_DATABASE: ${KEYCLOAK_DB}                 # Le nom de la base de données
+      DB_SCHEMA: ${KEYCLOAK_SCHEMA}               # le nom du schema dans la base de données
+      DB_USER: ${PG_KC_USER}                      # Le nom du user base de données
+      DB_PASSWORD: ${PG_KC_PASS}                  # Le mot de passe de l'utilisateur de la base de données
+
+      # Résolution du nom d'host interne de keycloak dans docker
+      # Permet l'accès par le nom de domain (interne au conteneur)
+      KEYCLOAK_HOSTNAME: ${HOSTNAME_LOCALHOST}    # Sur le serveur Nas synology
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_NAS}     # définit le port host interne
+      KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
+      
+      # Si la base de données est déjà créer , as besoin d'utilisé les paramétre ci-dessous 
+      # Ces paramétre sont pour 1er création de la base de données keycloak UNIQUEMENT 
+      #KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
+      #KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
+      KEYCLOAK_IMPORT: /config/realm-export.json   # localisation des domaines a importer
+
+      PROXY_ADDRESS_FORWARDING: "true"            # autorisé les redirection ( NGINX )
+      JAVA_OPTS: "-Xms1024m -Xmx2048m"            # configuration de la mémoire de keycloak
+    networks:
+      - keycloak_postgre
+    depends_on:
+      - postgres
+
+networks:
+  keycloak_postgre:
+    name: sso_bd
+    driver: bridge # Utilise le mode de réseau "bridge" pour ce réseau

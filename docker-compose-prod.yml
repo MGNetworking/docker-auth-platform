@@ -12,11 +12,14 @@ volumes:
 services:
   # Configuration de postgres
   postgres:
+    image: postgres-ssh:alpine
     container_name: postgres-db
-    image: postgres:alpine
-    restart: always
+    build:
+      context: .
+    restart: unless-stopped
     ports:
       - ${PG_PORT}
+      - ${SSH_SFTP_PORT}
     volumes:
       - ./postgres_home/backups:/var/backups:rw
       - ./postgres_home/data:/var/lib/postgresql/data      # dossier de persistance quand le conteneur à l'arrêt
@@ -36,7 +39,7 @@ services:
     image: quay.io/keycloak/keycloak:legacy
     restart: always
     ports:
-      - ${KEYCLOAK_PORT_HTTP}
+      - ${KEYCLOAK_PORT_HTTP_PROD}
     volumes:
       - ./keycloak_home/config:/config                                           # import config realm and user
       - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog  # import themes
@@ -52,20 +55,20 @@ services:
 
       # Résolution du nom d'host interne de keycloak dans docker
       # Permet l'accès par le nom de domain (interne au conteneur)
-      KEYCLOAK_HOSTNAME: ${HOSTNAME_PRE}          # Sur le serveur de pre production
-      #KEYCLOAK_HOSTNAME: ${HOSTNAME_PROD}        # Sur le serveur de production
-
-      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}         # définit le port host interne
+      KEYCLOAK_HOSTNAME: ${HOSTNAME_PROD}         # Sur le serveur de production
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_prod}    # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
-      KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
-      KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
+      
+      # Si la base de données est déjà créer , as besoin d'utilisé les paramétre ci-dessous 
+      # Ces paramétre sont pour 1er création de la base de données keycloak UNIQUEMENT 
+      #KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
+      #KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
       KEYCLOAK_IMPORT: /config/realm-export.json  # localisation des domaines a importer
 
       PROXY_ADDRESS_FORWARDING: "true"            # autorisé les redirection ( NGINX )
       JAVA_OPTS: "-Xms1024m -Xmx2048m"            # configuration de la mémoire de keycloak
     networks:
       - keycloak_postgre
-      - swag
     depends_on:
       - postgres
 
@@ -73,7 +76,3 @@ networks:
   keycloak_postgre:
     name: sso_bd
     driver: bridge
-  swag:
-    name: swag_nginx
-    external: true    # indic qui ce connectera au réseau existant blog-network
-    driver: bridge    # indic le type de réseau docker

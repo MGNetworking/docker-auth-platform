@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # création du dossier
-mkdir -p postgres_home/backups
+mkdir -p postgres_home/backups/ghoverblog
+mkdir -p postgres_home/backups/kc_db
 mkdir -p postgres_home/data
 
 # changer le propriétaire et le groupe du dossier
@@ -14,7 +15,7 @@ sudo chmod -R 770 postgres_home/data
 sudo chmod -R 770 keycloak_home
 
 # Démarrage du conteneur Jenkins avec Docker Compose
-docker compose up -d
+docker-compose -f docker-compose-prod.yml up -d
 
 # voir les logs
-docker compose logs -f
+docker-compose -f docker-compose-prod.yml logs -f
