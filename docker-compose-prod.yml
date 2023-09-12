@@ -15,7 +15,8 @@ services:
     image: postgres-ssh:alpine
     container_name: postgres-db
     build:
-      context: .
+      context: ./  # Chemin vers le répertoire racine du projet
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - ${PG_PORT}
