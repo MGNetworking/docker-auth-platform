@@ -25,13 +25,6 @@ if [ -n "${env[$choix]}" ]; then
 fi
 
 if $trouver; then
-    echo "Environnement sélectionné : $selection"
-
-    question=""
-    echo "Voulez vous supprimer le dossier postgres_home/data"
-    echo "de sauvegarde du conteneur cible Postgres? [o/n]"
-    read question
-
     echo "Suppression des conteneur"
     docker-compose -f docker-compose-"$selection".yml down
 
