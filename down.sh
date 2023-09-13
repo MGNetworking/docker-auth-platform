@@ -35,24 +35,12 @@ if $trouver; then
     echo "Suppression des conteneur"
     docker-compose -f docker-compose-"$selection".yml down
 
-    if [ $question == "o" ]; then
-        echo "Suppression du dossier : postgres_home/data"
-        rm -r postgres_home/data
-    fi
-
     # Affichage des images et conteneur toujours actif
     echo "La liste des processus toujours en cours d'exécution"
     docker ps | grep "postgres-db\|keycloak"
 
     echo "La liste des images Postgres et keycloak"
     docker images | grep "postgres-\|keycloak"
-
-    echo "Voulez vous supprimer le dossier postgres_home/data"
-    echo "de sauvegarde du conteneur cible Postgres? [o/n]"
-    if [ $question == "o" ]; then
-        echo "Suppression du dossier : postgres_home/data"
-        rm -r postgres_home/data
-    fi
 
 else
    echo "Votre choix de sélection n'est pas présent dans la liste"
