@@ -12,7 +12,7 @@ volumes:
 services:
   # Configuration de postgres
   postgres:
-    image: postgres-ssh:alpine
+    image: postgres-ssh-localhost:alpine
     container_name: postgres-db
     build:
       context: ./  # Chemin vers le répertoire racine du projet
