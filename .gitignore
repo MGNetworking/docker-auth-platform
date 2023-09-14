@@ -6,7 +6,7 @@
 .env
 
 # Environnement python
-/env
+/venv
 
 # Fichier postgres créer dès le 1er lancement
 /postgres_home/data/*
