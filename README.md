@@ -1,52 +1,47 @@
 # Keycloak / PostgresSQL
 
-* [Information projet](#Information-projet)
-* [Python](#Python)
-* [Vérification](#Vérification)
-    * [Lancement](#Lancement)
-    * [Sauvegarde & Restauration](#Sauvegarde-et-Restauration)
-* [PostgreSQL](#PostgreSQL)
-* [Keycloak](#Keycloak)
-* [Documentation](#Documentation)
+* [Information projet](#information-projet)
+* [Lancement](#lancement)
+* [Python](#python)
+* [Sauvegarde & Restauration](#sauvegarde-et-restauration)
+* [Les services](#les-services)
+    * [PostgreSQL](#postgresql)
+    * [Keycloak](#keycloak)
+* [Information](#information)
 
 ## Information projet
 
-Avant le lancement du projet, il y a quelque étape de [Vérification](#Vérification)
-à effectuer.
-
-**Les dossiers projets**  
-Les dossiers `/keycloak_home/config` et `/keycloak_home/themes` sont des dossiers de
-configuration de thème de connexion de site.
-
-Le dossier `/postgres_home/init` contient les fichiers script de création de base de
-données ainsi que des leurs data sous forme de fichier `sql.bak`
-
-NB : Ces fichiers ont une importance centrale dans la gestion du projet, ils ne doivent jamais
-être supprimés du projet.
+Le but de ce projet et de mettre en place un d'authentification complet avec
+osn gestionnaire de base de données. Il possède des scripts permettent les deployment
+des conteneurs, mais aussi la création d'images personalisé pour des besoins spécifique.
 
 **Le docker compose**  
 Le `docker compose` permet la création des conteneurs `postgre-db` et `keycloak`.
 Le conteneur `postgre-db` est lancé en 1er afin de garantir l'association avec le conteneur
 `keycloak`, qui doit posséder une base de données fix.
 Dans le cas où, il ne posséderait pas une base de données fix, il est prévu dans le mécanisme de
-création `keycloak` d'utiliser une base de données mémoire, ce qui n'est recherché dans ce projet.
+création `keycloak` d'utiliser une base de données mémoire, ce qui n'est pas recherché dans ce projet.
 
 Au lancement du conteneur `postgres-db`, celui-ci lit les fichiers se trouve dans le repertoire
 `/docker-entrypoint-initdb.d` pour exécuter tous les scripts possèdent l'extension `.sql`
 dans l'ordre alphabétique. Les autres fichiers ne possédant pas cette extension seront ignorée.
 
+Après l'initialisation du service de base de données `postgres-db` le service `keycloak` est exécuté.
+Puis le service recherche une base de données associée, si aucune base de données n'est configuré,
+une base de données mémoire `H2` et utilisé.
+Dans le cadre de ce projet le service `postgres-db` est utilisé. Toutes les données de l'application
+se trouvent donc en base de données.
+
 __Les Scripts__
 
-1. **Le Script `init.sh`**  
-   Il Permet, avant le lancement des services, de créer les volumes et leurs arborescences
-   puis modifie les propriétaires et leurs droits d'accès aux volumes.
-   Après toutes ces modifications, il lance le docker compose en mode détaché ensuite lance la
-   commande de log.
+1. **Le Script `run.sh`**  
+   Il Permet, de lancement les services `postrges-db` et `keycloak` via le docker compose en créant
+   au préalable les volumes nécessaires au fonctionnement des projets.
+   Après une series d'instruction, il lance le docker compose en mode détaché, puis lance les logs.
 
 
 2. **Le script `down.sh`**  
-   Ce script permet d'arrêter et de supprimer les conteneurs. Il supprime le volume data de postgres
-   qui garantie la persistance de la base de données.
+   Ce script permet d'arrêter et de supprimer les services conteneuriser. Il ne touche à rien d'autre.
 
 
 3. **Le script `kc_sh_backup.sh`**   
@@ -63,7 +58,7 @@ __Les Scripts__
       Le répertoire `init` contient les scripts de lancement pour la génération des bases de données.
 
    **Objectif :**  
-   Le fichier d'archive `.tar.gz` est utilise pour restaurer la BD `kc_db` de manière complet
+   Le fichier d'archive `.tar.gz` est utilisé pour restaurer la BD `kc_db` de manière complet
    en cours d'exécution du conteneur keycloak.
    Le fichier sql contient les données à jour pour un 1er lancement de conteneur.
 
@@ -98,85 +93,26 @@ Check la dernière ligne du fichier d'entrée `tail -f /var/log/syslog | grep "c
 Voir les logs : `tail -f /var/log/syslog`  
 Sa journalisation `journalctl -u cron.service`
 
-## Python
+## Lancement
 
-### Déploiement du projet
-
-Vous devez disposer des outils python suivant :
-
-* Une version de python3 : Python 3.10
-* Un package (paquet) spécifique pour installer l'outil de création d'environnements
-  virtuels (venv) pour Python 3.10 : `python3.10-venv`.
-
-Installation de python3 sur ubuntu
-
-```shell
-sudo apt install python3
-```
-
-Installation de l'outil de création d'environnement
-
-```shell
-sudo apt install python3.10-venv
-```
-
-Puis activer l'environnement virtuel :
-
-```shell
-source env/bin/activate
-```
-
-## Vérification
-
-Voici la liste des étapes a réalisé :
-
-* Check du service docker
-* Check des conteneurs docker en cours d'exécution
-* Modification des accès au script
-    * Fichier de lancement des conteneur : `init.sh`
-    * Fichier de suppression des conteneur : `down.sh`
-
-Vérification des chemin absolus :
-
-* Fichier de sauvegarde des base de données : `db-save_blog.py` et `db-save_kc.py`
-    * Vérification des chemins pour la sauvegarde des bases de données et des fichier de log
-* Fichier de programmation des tâches : `task_db.sh`
-    * Vérification les chemin absolus pour ciblé les scripts et les log de celui-ci
-
-Lancement du script `init.sh`
-
-Check du service docker. Plusieurs commande permet de vérifier l'état du service.
-
-```shell
-sudo service docker status
-```
-
-Check des services docker en cours d'exécution
-
-```shell
-docker ps
-```
-
-### Lancement
-
-Pour lancer l'exécution de ce projet, vous devez modifier les droits d'exécution du fichier `init.sh`.
+Pour lancer l'exécution de ce projet, vous devez modifier les droits d'exécution du fichier `run.sh`.
 Ce fichier est le script de lancement du projet.
-Dans le cas de la 1ʳᵉ installation, le script permettra de créer les volumes `keycloak_home` et `postgres_home`
-avec les droits utilisateurs de la session avant le lancement.
+Le script permettra de créer les volumes `keycloak_home` et `postgres_home` avec les droits utilisateurs
+a la création des services conteneurs.
 
-Voici la commande à exécuter pour rendre ce fichier exécutable :
+Modification des droits d'exécution :
 
 ```shell
-sudo chmod +x init.sh                   # Lancement et création des conteneurs
+sudo chmod +x run.sh                    # Lancement et création des conteneurs
 sudo chmod +x down.sh                   # Arrêt et Suppression des conteneurs 
 sudo chmod +x kc_sh_backup_RUNTIME.sh   # Backup Schema kc_sh pour le DEV
 sudo chmod +x task_db.sh                # planification des taches Crontab
 ```
 
-1. Lancer les conteneurs
+1. Lancement du docker compose
 
 ```shell
-./init.sh
+./run.sh
 ```
 
 2. Arrêter et supprimer les conteneurs
@@ -185,7 +121,7 @@ sudo chmod +x task_db.sh                # planification des taches Crontab
 ./down.sh
 ```
 
-3. Lancer un Backup pour le schema `kc_sh` placer dans le répertoir init du conteneur `postgres-db`
+3. Lancer un Backup pour le schema `kc_sh` placer dans le répertoire init du conteneur `postgres-db`
 
 ```shell
 ./kc_sh_backup_RUNTIME.sh
@@ -201,43 +137,144 @@ NB : Les fichiers exécutés par `crontab` doivent posséder les chemins absolut
 les repertoires de création des `backup` et des logs.
 Vous devrez vérifier a chaque installation que les chemins absolut soit bien référencer.
 
-### Sauvegarde-et-Restauration
+### Sauvegarde et Restauration
 
 Lancement du script de **Sauvegarde** de la base de données `kc_db`
 
 ```shell
-python3 db-save_kc.py 
+python db-save_kc.py 
 ```
 
 Lancement du script de **Sauvegarde** de la base de données `ghoverblog`
 
 ```shell
-python3 db-save_blog.py 
+python db-save_blog.py 
 ```
 
 Lancement du script de **Restauration** de la base de données `kc_db`
 
 ```shell
-python3 restore_kc.py 
+python restore_kc.py 
 ```
 
 Lancement du script de restauration de la base de données `ghoverblog`
 
 ```shell
-python3 restore_blog.py 
+python restore_blog.py 
 ```
+
+## Python
+
+**La gestion de l'environnement python du projet**
+
+Le fichier `requirements.txt` contient la liste des dépendances du projet.
+Vous devez activer l'environnement `python` pour que les scripts puissent utiliser
+les dépendances.
+
+Verifier la version de python sur votre machine :
+
+```shell
+python --version
+```
+
+Dans le cas d'une 1re utilisation, vous devez créer votre environnement virtuel
+en utiliser la commande suivante :
+
+```shell
+python -m venv [name_venv]
+```
+
+Puis installer les dépendances via le fichier `requirements.txt`
+
+```shell
+pip install -r requirements.txt
+```
+
+Puis basculé le terminal vers l'environnement  
+Sur windows
+
+```shell
+.\venv\Scripts\Activate.ps1
+```
+
+Sur Linux
+
+```shell
+source ./venv/Scripts/Activate
+```
+
+Pour la deactivation des environnements, entre dans le terminal et dans tout le système
+
+```shell
+deactivate
+```
+
+**La gestion de projet**
+
+À chaque ajout d'une dépendance au projet, cette dépendance doit être déclarée
+dans l'environnement local.
+
+Pour cela, il faut dans un 1er temps active l'environnement de python.
+Sans quoi cette dépendance sera installer dans l'environnement global.
+Puis l'ajoute des dépendances au projet.
+
+```shell
+pip install [dépendance]
+```
+
+Mettre à jour le fichier qui contient la list des dépendances
+
+```shell
+pip freeze > requirements.txt 
+```
+## Les services
+
+Le service `postgres-db` est basé sur l'Os `Alpine Linux`.
+Dans cette image est installé le service PostgreSQL ainsi que le service OpenSSH client.
+
+Le service `keycloak` est basé sur une image `Quarkus` qui provient du
+depot [RED HAT](https://quay.io/repository/keycloak/keycloak?tab=info)
+Version legacy. [Quarkus](https://quarkus.io/about/) est un projet Open source
 
 ## PostgreSQL
 
-Accéder au serveur de base de données qui contient les bases de données suivantes :
+Pour la base de données est accèssible en fonction de l'adresse Ip de l'host, mais un port
+est de connexion est réservé.
+
+Pour l'accès distant, un port de connexion ssh et sftp lui est réservé. Pour des questions de
+sécurité, cet accès distance et réservé a un utilisateur unique ainsi qui doit posséder une clef
+d'accès privet.
+
+**Les dossiers postgres**
+
+Le dossier `/postgres_home/init` contient les fichiers script de création de base de
+données ainsi que des leurs data sous forme de fichier `sql.bak`
+
+Le dossier `/postgres_home/data` contient la persistance de la base de données.
+Le dossier `/postgres_home/backups` et le dossier de sauvegarde des bases de données.
+
+**Accès externe**
+
+* L'accéder à la base de données postgres dans le conteneur `postgres-db`  
+  Le port de connexion : `5400`  
+  Le username : `max_admin`    
+  Le password de connection : `NzOgZsn29PewtEyQECEE`
+
+
+* L'accès distance ssh et sftp
+  Le port de connexion : `55`  
+  Le username : `max_admin`    
+  Le password de connection : ``MFVy9`d!74``
+
+**Accès via docker**
+
+Les services `postgre-db` contient nativement les bases de données suivantes :
 
 * `kc-db` la base de données de keycloak le nom du schéma et `kc_sh`.
 * `ghoverblog` la base de données du site le nom du schéma et `ms_article`.
 
-Le username : `max_admin`  
-Le password de connection : `NzOgZsn29PewtEyQECEE`
-
-L'accéder à la base de données postgres dans le conteneur `postgres-db`
+Vous pouvez y accèdé directement via un client comme `PgAdmin` ou soit part l'Os host en utilisant
+les commandes docker.
 
 ```shell
 docker exec -ti postgres-db bash
@@ -264,10 +301,23 @@ Quelque commande CLI postgreSQL :
 
 ## Keycloak
 
+**Accès administrateur via le client**
+
 l'accès ADMIN `maxime`  
 Le password ADMIN `IgGr488nzTMjkTo6WUPB`
 
-### Documentation
+**Les dossiers keycloak**
+
+Le dossier de configuration de l'application `/keycloak_home/config`. Il contient les fichiers
+correspondant au domain protégé. Ces fichiers permettent l'import/export des domains cibles.
+
+Le dossier `/keycloak_home/themes` permet la gestion thème des domains protègé.
+
+NB : Les fichiers contenus dans ces dossiers ont une importance centrale dans la gestion
+du projet et des domain protéger. À chaque modification de ces fichiers, une sauvegarde vers le gestionnaire de
+projet doit être réalisé.
+
+### Information
 
 1. Keycloak
 
