@@ -1,0 +1,21 @@
+{
+  "databases": {
+    "db": [
+      {
+        "DB_NAME": "ghoverblog",
+        "DB_SCHEMA": "ms_article"
+      },
+      {
+        "DB_NAME": "kc_db",
+        "DB_SCHEMA": "kc_sh"
+      }
+    ],
+    "access": [
+      {
+        "DB_HOST": "localhost",
+        "DB_PORT": "5400",
+        "DB_PASSWORD": "NzOgZsn29PewtEyQECEE"
+      }
+    ]
+  }
+}
