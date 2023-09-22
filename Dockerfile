@@ -166,31 +166,64 @@ ENV PGDATA /var/lib/postgresql/data
 RUN mkdir -p "$PGDATA" && chown -R postgres:postgres "$PGDATA" && chmod 1777 "$PGDATA"
 VOLUME /var/lib/postgresql/data
 
-# Installaiton personaliser
-# Installe OpenSSH Server, puis installe Nano, et enfin supprime le cache des paquets APK
+###################################### Installation personaliser ###################
+################### Installation
+# Installe OpenSSH Server, puis installe Nano et sudo, et enfin supprime le cache des paquets APK
 RUN apk add --no-cache openssh-server; \
+    apk add --no-cache python3; \
     apk add --no-cache nano; \
+    apk add --no-cache sudo; \
     rm -rf /var/cache/apk/*
 
+################### python
+RUN python --version
+
+################### Open ssh + PostgreSQL
 # création de clef HostKey
 RUN ssh-keygen -A
 
-# le fichier de configuration ssh et sftp
-COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
 # Une clef public pour être connecter
 COPY config_dockerfile/id_ed25519.pub /etc/ssh/id_ed25519.pub
 
+# le fichier de configuration ssh et sftp
+COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
+
 # le script de déploiment de postgres
 COPY config_dockerfile/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# Le fichier d'exécution du projet
+
+# le fichier d'exécution du projet
 COPY config_dockerfile/start.sh /usr/local/bin/start.sh
 
 # rendre ce script exécutable
 RUN chmod +x /usr/local/bin/start.sh
-# Créez un utilisateur qui sera utilsé pour le ssh | SFTP
+
+################### Les droits d'accès user maxime
+# Créez un dossier perso pour le user maxime et spécifie le shell par défault
 RUN adduser -D -h /home/maxime -s /bin/bash maxime
-# Créez mdp pour le user maxime
+
+# Ajout le user au groupe wheel (associé à la gestion des droits d'administration et de superutilisateur)
+RUN adduser maxime wheel
+
+# Créez mdp pour le user
 RUN echo "maxime:fkfJocJBg6A6BI8rFwXh" | chpasswd
+
+# Accorde des droits sudo au user
+RUN echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/maxime
+
+################### les scripts de sauvegarde
+# Création du dossier de script
+RUN mkdir -p /home/maxime/script/
+RUN mkdir -p /home/maxime/logs/
+
+# gestion des archives
+COPY python/DB_config.json /home/maxime/script/
+COPY python/folder_creation.py /home/maxime/script/
+
+# Donnes les droits utilisateur
+RUN chown maxime:maxime /home/maxime -R
+
+# rendre tout les script dans ce dossier exécutable
+RUN find /home/maxime/script/ -type f -name "*.sh" -exec chmod +x {} \;
 
 #  postgres 5432 | ssh et sftp 22
 EXPOSE 5432

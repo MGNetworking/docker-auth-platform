@@ -1,16 +1,16 @@
 # Fichier concernant l'IDE
 .idea/
 
-# Le fichier d'environnement utilisé dans le docker compose
-# Pour cause : garder la cohérence entre les branches
-.env
-
 # Environnement python
-/venv
+python/venv
 
 # Fichier postgres créer dès le 1er lancement
 /postgres_home/data/*
 /postgres_home/backups/*
 
-# Fichier de logs de la construction de l'images
-logs_complets.txt
+# Fichier de logs
+/python/logs_folder_creation.log
+
+# fichier de création de répertoir (Script python)
+/python/ghoverblog
+/python/kc_db

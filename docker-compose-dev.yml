@@ -28,7 +28,7 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_DB: postgres                # base de données créer au lancement
+      POSTGRES_DB: postgres                # base de données créée au lancement
       POSTGRES_USER: ${PG_KC_USER}         # Le User name de cette base de données
       POSTGRES_PASSWORD: ${PG_KC_PASS}     # Le Password de cette base de données
     networks: # déclare les noms de connexion réseaux
