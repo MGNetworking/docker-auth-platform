@@ -2,10 +2,9 @@
 
 * [Information projet](#information-projet)
 * [Lancement](#lancement)
-* [Python](#python)
 * [Sauvegarde & Restauration](#sauvegarde-et-restauration)
 * [Dockerfile](#dockerfile)
-* [Script python](#les-scripts)
+* [Python](#python)
 * [Les services](#les-services)
     * [PostgreSQL](#postgresql)
     * [Keycloak](#keycloak)
@@ -17,8 +16,8 @@ Le but de ce projet et de mettre en place un d'authentification complet avec
 osn gestionnaire de base de données. Il possède des scripts permettent les deployment
 des conteneurs, mais aussi la création d'images personalisé pour des besoins spécifique.
 
-**Le docker compose**  
-Le `docker compose` permet la création des conteneurs `postgre-db` et `keycloak`.
+**Le docker compose**   
+Il permet la création des conteneurs `postgre-db` et `keycloak`.
 Le conteneur `postgre-db` est lancé en 1er afin de garantir l'association avec le conteneur
 `keycloak`, qui doit posséder une base de données fix.
 Dans le cas où, il ne posséderait pas une base de données fix, il est prévu dans le mécanisme de
@@ -123,10 +122,34 @@ sudo chmod +x task_db.sh                # planification des taches Crontab
 ./down.sh
 ```
 
-3. Lancer un Backup pour le schema `kc_sh` placer dans le répertoire init du conteneur `postgres-db`
+### Sauvegarde et Restauration
+
+Il y a 2 projets permettent la sauvegarde
+
+Le 1er projet ``Python`` dont le script de fait 2 sauvegarde, une sauvegarde au format compressé `tar.gz`qui sera
+envoyer
+dans le dossier historique ``/var/backups/[nam database]``
+Et puis de créer une sauvegarde avec option `--clean` dans le fichier ``/docker-entrypoint-initdb.d`` au format ``SQL``
+
+Le 2ᵉ projet ``Bash`` dont le script ``backup_schema.sh`` permet de faire aussi une sauvegarde avec option `--clean`
+dans le fichier
+``/docker-entrypoint-initdb.d`` au format ``SQL``
+
+Les scripts ``.sql`` contenus dans le dossier ``/docker-entrypoint-initdb.d`` permette de mettre à jour les bases de
+données cible à chaque redémarrage du service de bases de données PostgreSQL.
+
+````shell
+# Dossier de sauvegarde PostgreSQL
+/docker-entrypoint-initdb.d
+# Dossier historique de sauvegarde des bases de données 
+/var/backups
+````
 
 ```shell
-./backup_schema.sh
+# Pour lancer le projet python
+python /home/maxime/script/main.py
+# Le projet backup_schema.sh
+/home/maxime/script/backup_schema.sh
 ```
 
 4. Lancer de la programmation des tâches géré par le service `crontab`
@@ -134,14 +157,6 @@ sudo chmod +x task_db.sh                # planification des taches Crontab
 ```shell
 ./task_db.sh
 ```
-
-NB : Les fichiers exécutés par `crontab` doivent posséder les chemins absolut vers
-les repertoires de création des `backup` et des logs.
-Vous devrez vérifier a chaque installation que les chemins absolut soit bien référencer.
-
-### Sauvegarde et Restauration
-
-Lancement du script de **Sauvegarde** de la base de données `kc_db`
 
 ```shell
 python db-save_kc.py 
@@ -163,71 +178,6 @@ Lancement du script de restauration de la base de données `ghoverblog`
 
 ```shell
 python restore_blog.py 
-```
-
-## Python
-
-**La gestion de l'environnement python du projet**
-
-Le fichier `requirements.txt` contient la liste des dépendances du projet.
-Vous devez activer l'environnement `python` pour que les scripts puissent utiliser
-les dépendances.
-
-Verifier la version de python sur votre machine :
-
-```shell
-python --version
-```
-
-Dans le cas d'une 1re utilisation, vous devez créer votre environnement virtuel
-en utiliser la commande suivante :
-
-```shell
-python -m venv [name_venv]
-```
-
-Puis installer les dépendances via le fichier `requirements.txt`
-
-```shell
-pip install -r requirements.txt
-```
-
-Puis basculé le terminal vers l'environnement  
-Sur windows
-
-```shell
-.\venv\Scripts\Activate.ps1
-```
-
-Sur Linux
-
-```shell
-source ./venv/Scripts/Activate
-```
-
-Pour la deactivation des environnements, entre dans le terminal et dans tout le système
-
-```shell
-deactivate
-```
-
-**La gestion de projet**
-
-À chaque ajout d'une dépendance au projet, cette dépendance doit être déclarée
-dans l'environnement local.
-
-Pour cela, il faut dans un 1er temps active l'environnement de python.
-Sans quoi cette dépendance sera installer dans l'environnement global.
-Puis l'ajoute des dépendances au projet.
-
-```shell
-pip install [dépendance]
-```
-
-Mettre à jour le fichier qui contient la list des dépendances
-
-```shell
-pip freeze > requirements.txt 
 ```
 
 ## Dockerfile
@@ -321,10 +271,48 @@ Le fichier ``start.sh``
 Ce fichier est le script d'exécution des services ssh et PostgreSQL.
 Il est lancé à la création du conteneur est au redémarrage de celui-ci.
 
-## Les Scripts
+## Python
 
-# TODO prendre la parti Python et lajoute ici 
-# TODO fair 2 parti : 1 parti python et un parti bash
+**L'environnement python**
+
+L'environnement du projet concerne les librairies contenues dans les scripts. Ces librairies sont
+registres dans un dossier nommé ``venv`` qui est le dossier en gestion de l'environnement du projet.
+
+```dockerfile
+# Pour créer un environnement vierge
+python -m venv [name_venv]
+# puis installer les dépendances contenu dans le projet 
+pip install -r requirements.txt
+```
+
+Le fichier `requirements.txt` contient la liste des dépendances du projet.
+Il est possible que cet environnement soit vide.
+
+Activer l'environnement local :
+
+```shell
+# Sur windows
+.\venv\Scripts\Activate.ps1
+# Sur Linux
+source ./venv/Scripts/Activate
+# Pour la deactivation des environnements
+deactivate
+```
+
+**La gestion de projet**
+
+À chaque ajout d'une dépendance au projet, cette dépendance doit être déclarée
+dans l'environnement local.
+
+Pour cela, il faut dans un 1er temps, active l'environnement de python.
+Sans quoi cette dépendance sera installer dans l'environnement global.
+
+```shell
+# Ajouter une dépendance dans l'environnement
+pip install [dépendance]
+# Mettre à jour la list des dépendances
+pip freeze > requirements.txt 
+```
 
 ## Les services
 
