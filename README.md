@@ -107,7 +107,7 @@ Modification des droits d'exécution :
 ```shell
 sudo chmod +x run.sh                    # Lancement et création des conteneurs
 sudo chmod +x down.sh                   # Arrêt et Suppression des conteneurs 
-sudo chmod +x kc_sh_backup_RUNTIME.sh   # Backup Schema kc_sh pour le DEV
+sudo chmod +x backup_schema.sh   # Backup Schema kc_sh pour le DEV
 sudo chmod +x task_db.sh                # planification des taches Crontab
 ```
 
@@ -126,7 +126,7 @@ sudo chmod +x task_db.sh                # planification des taches Crontab
 3. Lancer un Backup pour le schema `kc_sh` placer dans le répertoire init du conteneur `postgres-db`
 
 ```shell
-./kc_sh_backup_RUNTIME.sh
+./backup_schema.sh
 ```
 
 4. Lancer de la programmation des tâches géré par le service `crontab`

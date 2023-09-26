@@ -1,0 +1,30 @@
+2023-09-26 10:19:46,210 - INFO - ********************
+2023-09-26 10:19:46,211 - INFO - Debut programme
+2023-09-26 10:19:46,211 - INFO - Deserialization du fichier json
+2023-09-26 10:19:46,216 - INFO - Création des dossiers pour chaque bases de données et pour chaque schemas 
+2023-09-26 10:19:46,216 - INFO - Le nom de la DB ghoverblog et le nom du schema ms_article
+2023-09-26 10:19:46,216 - INFO - Obtention du mois et de l'année en cours
+2023-09-26 10:19:46,217 - INFO - Créer des repertoires historique
+2023-09-26 10:19:46,217 - INFO - pour la schema ghoverblog sur la base de données ghoverblog
+2023-09-26 10:19:46,218 - INFO - path_hist => /var/backups/ghoverblog/ms_article/year_2023/month_9 
+2023-09-26 10:19:46,222 - INFO - Obtention du mois et de l'année en cours
+2023-09-26 10:19:46,222 - INFO - Commande pg_dump -U max_admin -d ghoverblog -F t --clean -f /var/backups/ghoverblog/ms_article/year_2023/month_9/ms_article_26_9_2023.tar.gz
+2023-09-26 10:19:46,223 - INFO - Commande pg_dump -U max_admin -d ghoverblog -f /docker-entrypoint-initdb.d/ghoverblog_backup.sql
+2023-09-26 10:19:46,641 - INFO - Le dump était réaliser avec succès
+2023-09-26 10:19:46,642 - INFO - Message : 
+2023-09-26 10:19:47,038 - INFO - Le dump était réaliser avec succès
+2023-09-26 10:19:47,039 - INFO - Message : 
+2023-09-26 10:19:47,039 - INFO - Le nom de la DB kc_db et le nom du schema kc_sh
+2023-09-26 10:19:47,039 - INFO - Obtention du mois et de l'année en cours
+2023-09-26 10:19:47,040 - INFO - Créer des repertoires historique
+2023-09-26 10:19:47,040 - INFO - pour la schema kc_db sur la base de données kc_db
+2023-09-26 10:19:47,041 - INFO - path_hist => /var/backups/kc_db/kc_sh/year_2023/month_9 
+2023-09-26 10:19:47,046 - INFO - Obtention du mois et de l'année en cours
+2023-09-26 10:19:47,046 - INFO - Commande pg_dump -U max_admin -d kc_db -F t --clean -f /var/backups/kc_db/kc_sh/year_2023/month_9/kc_sh_26_9_2023.tar.gz
+2023-09-26 10:19:47,047 - INFO - Commande pg_dump -U max_admin -d kc_db -f /docker-entrypoint-initdb.d/kc_db_backup.sql
+2023-09-26 10:19:47,755 - INFO - Le dump était réaliser avec succès
+2023-09-26 10:19:47,755 - INFO - Message : 
+2023-09-26 10:19:48,488 - INFO - Le dump était réaliser avec succès
+2023-09-26 10:19:48,488 - INFO - Message : 
+2023-09-26 10:19:48,489 - INFO - Fin du programme 
+2023-09-26 10:19:48,489 - INFO - ********************

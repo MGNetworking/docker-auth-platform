@@ -215,9 +215,6 @@ RUN echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/maxime
 RUN mkdir -p /home/maxime/script/
 RUN mkdir -p /home/maxime/logs/
 
-# gestion des archives
-COPY python/DB_config.json /home/maxime/script/
-COPY python/folder_creation.py /home/maxime/script/
 
 # Donnes les droits utilisateur
 RUN chown maxime:maxime /home/maxime -R
