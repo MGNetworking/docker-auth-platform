@@ -12,7 +12,7 @@ DB_PASSWORD=""
 DB_NAME="kc_db"
 DB_SCHEMA="kc_sh"
 # path_log = "/home/maxime/logs/script.log"  # le chemin d'accès au log
-PATH_INIT = "/docker-entrypoint-initdb.d"
+PATH_INIT="/docker-entrypoint-initdb.d"
 
 # Chemin dans le conteneur
 BACKUP_DIR="/docker-entrypoint-initdb.d"
@@ -28,8 +28,10 @@ log() {
   echo "[$timestamp] $1" >> "$log_file"
 }
 
+file_JSON="/home/maxime/script/DB_config.json"
+
 # Lire le fichier JSON
-json_data=$(cat DB_config.json)
+json_data=$(cat ${file_JSON})
 
 # Utiliser jq pour parcourir la liste des bases de données
 db_list=$(echo "$json_data" | jq -c '.databases.db[]')

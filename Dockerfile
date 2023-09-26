@@ -171,6 +171,7 @@ VOLUME /var/lib/postgresql/data
 # Installe OpenSSH Server, puis installe Nano et sudo, et enfin supprime le cache des paquets APK
 RUN apk add --no-cache openssh-server; \
     apk add --no-cache python3; \
+    apk add --no-cache jq; \
     apk add --no-cache nano; \
     apk add --no-cache sudo; \
     rm -rf /var/cache/apk/*
