@@ -1,5 +1,5 @@
-# Ce script permet de créer une sauvegarde de la base de bonne ghoverblog
-# Il créra un backup un drop de tout de toutes les tables via la mot clef : --clean
+# Ce script permet de créer une sauvegarde de la base de bonne ghoverblog.
+# Il créera un Backup un drop de tout de toutes les tables via la mot clef : --clean
 
 import subprocess
 import datetime

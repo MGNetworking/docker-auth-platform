@@ -4,6 +4,8 @@
 * [Lancement](#lancement)
 * [Python](#python)
 * [Sauvegarde & Restauration](#sauvegarde-et-restauration)
+* [Dockerfile](#dockerfile)
+* [Script python](#les-scripts)
 * [Les services](#les-services)
     * [PostgreSQL](#postgresql)
     * [Keycloak](#keycloak)
@@ -105,7 +107,7 @@ Modification des droits d'exécution :
 ```shell
 sudo chmod +x run.sh                    # Lancement et création des conteneurs
 sudo chmod +x down.sh                   # Arrêt et Suppression des conteneurs 
-sudo chmod +x kc_sh_backup_RUNTIME.sh   # Backup Schema kc_sh pour le DEV
+sudo chmod +x backup_schema.sh   # Backup Schema kc_sh pour le DEV
 sudo chmod +x task_db.sh                # planification des taches Crontab
 ```
 
@@ -124,7 +126,7 @@ sudo chmod +x task_db.sh                # planification des taches Crontab
 3. Lancer un Backup pour le schema `kc_sh` placer dans le répertoire init du conteneur `postgres-db`
 
 ```shell
-./kc_sh_backup_RUNTIME.sh
+./backup_schema.sh
 ```
 
 4. Lancer de la programmation des tâches géré par le service `crontab`
@@ -227,6 +229,103 @@ Mettre à jour le fichier qui contient la list des dépendances
 ```shell
 pip freeze > requirements.txt 
 ```
+
+## Dockerfile
+
+Le Dockerfile provient du
+dépot [Github de Postgres](https://github.com/docker-library/postgres/blob/master/16/alpine3.18/Dockerfile)
+Les modifications de ce dockerfile commence à la partie `Installation personnaliser`
+
+Ce Dockerfile possède un dossier de configuration ``config_dockerfile`` lui permettent, au moment de sa
+construction, d'utiliser certain fichier qui lui sont utile en phase de construction.
+
+1. **Installation des composants Openssh-server nano et sudo**
+
+````dockerfile
+RUN apk add --no-cache openssh-server; \
+    apk add --no-cache nano; \
+    apk add --no-cache sudo; \
+    rm -rf /var/cache/apk/*
+````
+
+La commande ``rm -rf /var/cache/apk/`` est utilisée pour supprimer le contenu du répertoire /var/cache/apk/ sur un
+système
+d'exploitation basé sur Alpine Linux
+
+* rm : C'est la commande principale pour supprimer des fichiers et des répertoires sous Unix/Linux.
+* -rf : Ce sont des options fournies à la commande rm :
+    * -r (ou --recursive) : Indique à la commande rm de supprimer récursivement les répertoires et leur contenu.
+      Cela signifie que si ``/var/cache/apk/`` contient des sous-répertoires ou des fichiers, ils seront également
+      supprimés.
+    * -f (ou --force) : Indique à la commande rm de supprimer les fichiers et les répertoires sans demander de
+      confirmation.
+      Cela est utile lorsqu'on veut supprimer un grand nombre de fichiers sans être interrompu par des messages de
+      confirmation.
+* /var/cache/apk/ : C'est le chemin complet du répertoire que l'on souhaite supprimer. Dans le contexte d'Alpine Linux,
+  ce répertoire est utilisé pour stocker des fichiers temporaires liés à la gestion des paquets (packages).
+  Cela peut inclure des fichiers d'index, des fichiers de cache, des fichiers de métadonnées, etc.
+
+La raison de cette commande dans le script est de libérer de l'espace disque en supprimant les fichiers temporaires
+stockés dans le répertoire ``/var/cache/apk/``
+
+2. **Gestion des clefs de connexion**
+
+````dockerfile
+RUN ssh-keygen -A
+COPY config_dockerfile/id_ed25519.pub /etc/ssh/id_ed25519.pub
+COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
+````
+
+Cette commande est utilisée pour générer les clés SSH par défaut sur un système Linux. Cette commande génère les clés
+SSH nécessaires pour le bon fonctionnement du service OpenSSH-server en créant les paires de clés publiques
+et privées associées.
+
+**Dossier de stockage**   
+Les clés SSH générées par la commande ``ssh-keygen -A`` sont généralement stockées dans
+le répertoire par défaut de configuration d'OpenSSH qui est ``/etc/ssh/.``.
+
+> Vous y trouverez 4 type de clef :
+>- Clé public/privée RSA pour le chiffrement des communications
+>- Clé public/privée dsa obsolète et moins sécurisée, déconseillée
+>- Clé public/privée ecdsa utilisée pour les courbes elliptiques
+>- Clé public/privée ed25519 plus moderne et sécurisée
+
+La génération de clef dans ce répertoire est obligatoire dans le cas contraire le service ne pourra démarrer et
+restera en échec. À note que la génération d'une seule clef est suffisant et que la commande ``ssh-keygen -A``
+permet simplifie la construction de l'image.
+
+La copie de la clef ``id_ed25519.pub``  
+Une Clef public a été ajouter au projet nomme ``id_ed25519.pub``.
+Pour rappel la clef privet est nécessaire pour se connecter au serveur puisque ce dernier posséde la clef public.
+En effet, c'est le client, se connectent au serveur, qui doit apporter la preuve de son autorisation avec la clef
+privet qui doit être present dans le dossier .ssh de son Os.
+
+La copie du fichier ``sshd_config``
+C'est un fichier de configuration de connexion ssh et sftp. Il contient donc les paramétres
+permettent la gestion de la connexion distante.
+
+**Les scripts d'exécution**
+
+````dockerfile
+COPY config_dockerfile/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY config_dockerfile/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+````
+
+Le fichier ``docker-entrypoint.sh``   
+Ce script permet de personnaliser le démarrage et la configuration de ``PostgreSQL`` dans le conteneur Docker
+Il a été écrit par ``PostgreSQL`` et est présent dans
+son [depot Github](https://github.com/docker-library/postgres/blob/master/15/alpine3.18/Dockerfile)
+
+Le fichier ``start.sh``
+Ce fichier est le script d'exécution des services ssh et PostgreSQL.
+Il est lancé à la création du conteneur est au redémarrage de celui-ci.
+
+## Les Scripts
+
+# TODO prendre la parti Python et lajoute ici 
+# TODO fair 2 parti : 1 parti python et un parti bash
+
 ## Les services
 
 Le service `postgres-db` est basé sur l'Os `Alpine Linux`.

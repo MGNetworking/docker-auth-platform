@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 15.3
--- Dumped by pg_dump version 15.3
+-- Dumped from database version 15.4
+-- Dumped by pg_dump version 15.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -2029,6 +2029,7 @@ c3a412a6-8bff-4786-843f-9e15a38d0d35	Trusted Hosts	91cb1cd2-e133-4f67-9800-593c8
 2be845c2-1dd4-470c-897c-0c6e77eb3e9c	aes-generated	91cb1cd2-e133-4f67-9800-593c809120c8	aes-generated	org.keycloak.keys.KeyProvider	91cb1cd2-e133-4f67-9800-593c809120c8	\N
 3d7e0de5-7827-4e66-b09c-6b3ee2884e24	hmac-generated	91cb1cd2-e133-4f67-9800-593c809120c8	hmac-generated	org.keycloak.keys.KeyProvider	91cb1cd2-e133-4f67-9800-593c809120c8	\N
 fa662f9f-c916-423c-843b-19d549fcc0ff	rsa-enc-generated	91cb1cd2-e133-4f67-9800-593c809120c8	rsa-enc-generated	org.keycloak.keys.KeyProvider	91cb1cd2-e133-4f67-9800-593c809120c8	\N
+860c0462-c6eb-4446-aaac-5e12be31ee24	\N	91cb1cd2-e133-4f67-9800-593c809120c8	declarative-user-profile	org.keycloak.userprofile.UserProfileProvider	91cb1cd2-e133-4f67-9800-593c809120c8	\N
 \.
 
 
@@ -2993,7 +2994,7 @@ ea513ef6-9146-43b6-8209-d21b13b4da96	true	multivalued
 
 COPY kc_sh.realm (id, access_code_lifespan, user_action_lifespan, access_token_lifespan, account_theme, admin_theme, email_theme, enabled, events_enabled, events_expiration, login_theme, name, not_before, password_policy, registration_allowed, remember_me, reset_password_allowed, social, ssl_required, sso_idle_timeout, sso_max_lifespan, update_profile_on_soc_login, verify_email, master_admin_client, login_lifespan, internationalization_enabled, default_locale, reg_email_as_username, admin_events_enabled, admin_events_details_enabled, edit_username_allowed, otp_policy_counter, otp_policy_window, otp_policy_period, otp_policy_digits, otp_policy_alg, otp_policy_type, browser_flow, registration_flow, direct_grant_flow, reset_credentials_flow, client_auth_flow, offline_session_idle_timeout, revoke_refresh_token, access_token_life_implicit, login_with_email_allowed, duplicate_emails_allowed, docker_auth_flow, refresh_token_max_reuse, allow_user_managed_access, sso_max_lifespan_remember_me, sso_idle_timeout_remember_me, default_role) FROM stdin;
 8c7aaac8-4834-4bc1-b139-b904b076efc0	60	300	60	\N	\N	\N	t	f	0	\N	master	0	\N	f	f	f	f	EXTERNAL	1800	36000	f	f	b24b4acb-89a0-4821-a4c0-82bdd5a8e467	1800	f	\N	f	f	f	f	0	1	30	6	HmacSHA1	totp	34573abd-eadf-423a-8fc0-5f127befbff9	78961e85-753e-4adf-bd8d-9d2287157467	3a01df8d-8cf7-4ee1-bd8f-f82fe15405b9	ec7f78d2-ef09-4d2a-85af-e9c0c01a6f1a	4cda879b-ac12-48df-bbbe-cb22c6376c3f	2592000	f	900	t	f	1d8a8069-184c-4dab-8706-b7cfdc6b0dce	0	f	0	0	8945eff9-ebe4-492b-8429-2b6ccc139aad
-91cb1cd2-e133-4f67-9800-593c809120c8	60	300	300	\N	\N	\N	t	f	0	\N	ghoverblog	0	\N	f	f	f	f	EXTERNAL	1800	36000	f	f	6e28b55a-cc17-4c70-a96f-f829402fefc7	1800	f	\N	f	f	f	f	0	1	30	6	HmacSHA1	totp	e62459b7-7fed-46ef-b152-3290716681b1	b122081f-baaa-4ee0-8bd3-de56d0f0a677	8aaa788b-b8c4-48c1-afa9-6f205d1a7f58	c37a4bd8-d911-4bcb-8c37-15d04669a61c	2519192b-9e5e-4557-a798-c843d62f5591	2592000	f	900	t	f	4e3245cb-5649-479e-be4b-823051d465bf	0	f	0	0	c8281036-19c6-4d54-92e1-b3efbf04d387
+91cb1cd2-e133-4f67-9800-593c809120c8	60	300	300				t	f	0	ghoverblog	ghoverblog	0	\N	f	f	f	f	EXTERNAL	1800	36000	f	f	6e28b55a-cc17-4c70-a96f-f829402fefc7	1800	f	\N	f	f	f	f	0	1	30	6	HmacSHA1	totp	e62459b7-7fed-46ef-b152-3290716681b1	b122081f-baaa-4ee0-8bd3-de56d0f0a677	8aaa788b-b8c4-48c1-afa9-6f205d1a7f58	c37a4bd8-d911-4bcb-8c37-15d04669a61c	2519192b-9e5e-4557-a798-c843d62f5591	2592000	f	900	t	f	4e3245cb-5649-479e-be4b-823051d465bf	0	f	0	0	c8281036-19c6-4d54-92e1-b3efbf04d387
 \.
 
 
@@ -3022,13 +3023,17 @@ displayNameHtml	8c7aaac8-4834-4bc1-b139-b904b076efc0	<div class="kc-logo-text"><
 defaultSignatureAlgorithm	8c7aaac8-4834-4bc1-b139-b904b076efc0	RS256
 offlineSessionMaxLifespanEnabled	8c7aaac8-4834-4bc1-b139-b904b076efc0	false
 offlineSessionMaxLifespan	8c7aaac8-4834-4bc1-b139-b904b076efc0	5184000
-_browser_header.contentSecurityPolicyReportOnly	91cb1cd2-e133-4f67-9800-593c809120c8	
-_browser_header.xContentTypeOptions	91cb1cd2-e133-4f67-9800-593c809120c8	nosniff
-_browser_header.xRobotsTag	91cb1cd2-e133-4f67-9800-593c809120c8	none
-_browser_header.xFrameOptions	91cb1cd2-e133-4f67-9800-593c809120c8	SAMEORIGIN
-_browser_header.contentSecurityPolicy	91cb1cd2-e133-4f67-9800-593c809120c8	frame-src 'self'; frame-ancestors 'self'; object-src 'none';
-_browser_header.xXSSProtection	91cb1cd2-e133-4f67-9800-593c809120c8	1; mode=block
-_browser_header.strictTransportSecurity	91cb1cd2-e133-4f67-9800-593c809120c8	max-age=31536000; includeSubDomains
+clientSessionIdleTimeout	91cb1cd2-e133-4f67-9800-593c809120c8	0
+clientSessionMaxLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	0
+clientOfflineSessionIdleTimeout	91cb1cd2-e133-4f67-9800-593c809120c8	0
+clientOfflineSessionMaxLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	0
+oauth2DeviceCodeLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	600
+oauth2DevicePollingInterval	91cb1cd2-e133-4f67-9800-593c809120c8	5
+cibaBackchannelTokenDeliveryMode	91cb1cd2-e133-4f67-9800-593c809120c8	poll
+cibaExpiresIn	91cb1cd2-e133-4f67-9800-593c809120c8	120
+cibaInterval	91cb1cd2-e133-4f67-9800-593c809120c8	5
+cibaAuthRequestedUserHint	91cb1cd2-e133-4f67-9800-593c809120c8	login_hint
+parRequestUriLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	60
 bruteForceProtected	91cb1cd2-e133-4f67-9800-593c809120c8	false
 permanentLockout	91cb1cd2-e133-4f67-9800-593c809120c8	false
 maxFailureWaitSeconds	91cb1cd2-e133-4f67-9800-593c809120c8	900
@@ -3037,17 +3042,11 @@ waitIncrementSeconds	91cb1cd2-e133-4f67-9800-593c809120c8	60
 quickLoginCheckMilliSeconds	91cb1cd2-e133-4f67-9800-593c809120c8	1000
 maxDeltaTimeSeconds	91cb1cd2-e133-4f67-9800-593c809120c8	43200
 failureFactor	91cb1cd2-e133-4f67-9800-593c809120c8	30
+actionTokenGeneratedByAdminLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	43200
+actionTokenGeneratedByUserLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	300
 defaultSignatureAlgorithm	91cb1cd2-e133-4f67-9800-593c809120c8	RS256
 offlineSessionMaxLifespanEnabled	91cb1cd2-e133-4f67-9800-593c809120c8	false
 offlineSessionMaxLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	5184000
-clientSessionIdleTimeout	91cb1cd2-e133-4f67-9800-593c809120c8	0
-clientSessionMaxLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	0
-clientOfflineSessionIdleTimeout	91cb1cd2-e133-4f67-9800-593c809120c8	0
-clientOfflineSessionMaxLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	0
-actionTokenGeneratedByAdminLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	43200
-actionTokenGeneratedByUserLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	300
-oauth2DeviceCodeLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	600
-oauth2DevicePollingInterval	91cb1cd2-e133-4f67-9800-593c809120c8	5
 webAuthnPolicyRpEntityName	91cb1cd2-e133-4f67-9800-593c809120c8	keycloak
 webAuthnPolicySignatureAlgorithms	91cb1cd2-e133-4f67-9800-593c809120c8	ES256
 webAuthnPolicyRpId	91cb1cd2-e133-4f67-9800-593c809120c8	
@@ -3066,13 +3065,15 @@ webAuthnPolicyRequireResidentKeyPasswordless	91cb1cd2-e133-4f67-9800-593c809120c
 webAuthnPolicyUserVerificationRequirementPasswordless	91cb1cd2-e133-4f67-9800-593c809120c8	not specified
 webAuthnPolicyCreateTimeoutPasswordless	91cb1cd2-e133-4f67-9800-593c809120c8	0
 webAuthnPolicyAvoidSameAuthenticatorRegisterPasswordless	91cb1cd2-e133-4f67-9800-593c809120c8	false
-cibaBackchannelTokenDeliveryMode	91cb1cd2-e133-4f67-9800-593c809120c8	poll
-cibaExpiresIn	91cb1cd2-e133-4f67-9800-593c809120c8	120
-cibaInterval	91cb1cd2-e133-4f67-9800-593c809120c8	5
-cibaAuthRequestedUserHint	91cb1cd2-e133-4f67-9800-593c809120c8	login_hint
-parRequestUriLifespan	91cb1cd2-e133-4f67-9800-593c809120c8	60
 client-policies.profiles	91cb1cd2-e133-4f67-9800-593c809120c8	{"profiles":[]}
 client-policies.policies	91cb1cd2-e133-4f67-9800-593c809120c8	{"policies":[]}
+_browser_header.contentSecurityPolicyReportOnly	91cb1cd2-e133-4f67-9800-593c809120c8	
+_browser_header.xContentTypeOptions	91cb1cd2-e133-4f67-9800-593c809120c8	nosniff
+_browser_header.xRobotsTag	91cb1cd2-e133-4f67-9800-593c809120c8	none
+_browser_header.xFrameOptions	91cb1cd2-e133-4f67-9800-593c809120c8	SAMEORIGIN
+_browser_header.contentSecurityPolicy	91cb1cd2-e133-4f67-9800-593c809120c8	frame-src 'self'; frame-ancestors 'self'; object-src 'none';
+_browser_header.xXSSProtection	91cb1cd2-e133-4f67-9800-593c809120c8	1; mode=block
+_browser_header.strictTransportSecurity	91cb1cd2-e133-4f67-9800-593c809120c8	max-age=31536000; includeSubDomains
 \.
 
 

@@ -9,6 +9,7 @@ for i in "${!env[@]}"; do
   affichage+="[$i] pour l'environnement ${env[$i]} \n"
 done
 
+# Affiche a l'utilisateur tout les environnement disponible
 echo -e "$affichage"
 read choix
 
