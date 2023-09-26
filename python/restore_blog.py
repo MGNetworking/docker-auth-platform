@@ -27,7 +27,7 @@ BACKUP_DB = f"backups/{db_name}/{mois_en_cours}_{annee_en_cours}"
 backup_dir = os.path.join(os.getcwd(), "postgres_home", BACKUP_DB)
 
 ##### Gestion des logs
-# Création de chemin du dossier pour les log
+# Création de chemin du dossier pour les logs
 BACKUP_DB_LOG = f"{backup_dir}/logfile.log"
 
 # Création du fichier de log vide s'il n'existe pas

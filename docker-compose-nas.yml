@@ -22,13 +22,15 @@ services:
       - ${PG_PORT}
       - ${SSH_SFTP_PORT}
     volumes:
-      - ./postgres_home/backups:/var/backups:rw
-      - ./postgres_home/data:/var/lib/postgresql/data      # dossier de persistance quand le conteneur à l'arrêt
-      - ./postgres_home/init:/docker-entrypoint-initdb.d   # Script d'exécution au lancement
+      - ./postgres_home/backups:/var/backups:rw               # fichier historique de sauvegarde
+      - ./postgres_home/data:/var/lib/postgresql/data:rw      # dossier de persistance quand le conteneur à l'arrêt
+      - ./postgres_home/init:/docker-entrypoint-initdb.d:rw   # Script d'exécution au lancement
+      - ./postgres_home/home/script:/home/maxime/script:rw     # dossier de script
+      - ./postgres_home/home/logs:/home/maxime/logs:rw         # dossier de logs
     env_file:
       - .env
     environment:
-      POSTGRES_DB: postgres                # base de données créer au lancement
+      POSTGRES_DB: postgres                # base de données créée au lancement
       POSTGRES_USER: ${PG_KC_USER}         # Le User name de cette base de données
       POSTGRES_PASSWORD: ${PG_KC_PASS}     # Le Password de cette base de données
     networks: # déclare les noms de connexion réseaux

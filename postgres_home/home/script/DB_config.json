@@ -1,0 +1,34 @@
+{
+  "databases": {
+    "db": [
+      {
+        "DB_NAME": "ghoverblog",
+        "LISTE_SCHEMA": [
+          {
+            "SCHEMA": "ms_article",
+            "PATH_HISTORY": "",
+            "POSTGRES_INIT": "/docker-entrypoint-initdb.d"
+          }
+        ]
+      },
+      {
+        "DB_NAME": "kc_db",
+        "LISTE_SCHEMA": [
+          {
+            "SCHEMA": "kc_sh",
+            "PATH_HISTORY": "",
+            "POSTGRES_INIT": "/docker-entrypoint-initdb.d"
+          }
+        ]
+      }
+    ],
+    "access": [
+      {
+        "DB_HOST": "localhost",
+        "DB_PORT": "5400",
+        "DB_USER": "max_admin",
+        "DB_PASSWORD": "NzOgZsn29PewtEyQECEE"
+      }
+    ]
+  }
+}
