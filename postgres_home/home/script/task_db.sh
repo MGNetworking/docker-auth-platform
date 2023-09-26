@@ -1,4 +1,7 @@
 #!/bin/bash
+# N'est pas utilisé pour le moment
+# Les variables ne cible pas le chemin de dossier interne
+# Il doit être re travailler avant d'être utilisé !!!!!
 
 # Ce script permet de programmer via cron des tâches
 # Les tâches sont le lancement de script de sauvegarde
