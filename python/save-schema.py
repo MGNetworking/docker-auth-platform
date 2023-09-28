@@ -26,7 +26,7 @@ path_log_dev = f"/Informatique/Projet/Blog/docker/docker-keycloak-postgres/pytho
 liste_access: list = []
 liste_db: list = []
 
-json_file: str = "../postgres_home/home/script/DB_config.json"  # Spécifiez le chemin vers votre fichier JSON
+json_file: str = "../config_dockerfile/save_script/DB_config.json"  # Spécifiez le chemin vers votre fichier JSON
 # DATE_FORMAT = "%Y-%m-%d_%H-%M-%S"  # Format de nom de fichier de sauvegarde
 path_log = "/home/maxime/logs"  # le chemin d'accès au log
 file_log = "data.log"  # le fichier de logs
