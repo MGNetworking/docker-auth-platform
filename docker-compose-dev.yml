@@ -17,16 +17,18 @@ services:
     build:
       context: ./  # Chemin vers le répertoire racine du projet
       dockerfile: Dockerfile
+      args:
+        PORT_SSH: ${port_ssh}             # Port interne SSH
+        PORT_POSTGRES: ${port_postgres}   # Port interne Postgres
+        MDP_USER: ${mdp_user}
     restart: unless-stopped
     ports:
-      - ${PG_PORT}
-      - ${SSH_SFTP_PORT}
+      - ${PG_PORT}        # Port externe Postgres
+      - ${SSH_SFTP_PORT}  # Port externe SSH
     volumes:
-      - ./postgres_home/backups:/var/backups:rw                # fichier historique de sauvegarde
-      - ./postgres_home/data:/var/lib/postgresql/data:rw       # dossier de persistance quand le conteneur à l'arrêt
-      - ./postgres_home/init:/docker-entrypoint-initdb.d:rw    # Script d'exécution au lancement
-      - ./postgres_home/home/script:/home/maxime/script:rw     # dossier de script
-      - ./postgres_home/home/logs:/home/maxime/logs:rw         # dossier de logs
+      - ./postgres_home/backups:/var/backups:rw                 # fichier historique de sauvegarde
+      - ./postgres_home/data:/var/lib/postgresql/data:rw        # dossier de persistance quand le conteneur à l'arrêt
+      - ./postgres_home/init:/docker-entrypoint-initdb.d:rw     # Script d'exécution au lancement
     env_file:
       - .env
     environment:
@@ -42,7 +44,7 @@ services:
     image: quay.io/keycloak/keycloak:legacy
     restart: always
     ports:
-      - ${KEYCLOAK_PORT_HTTP_NAS}
+      - ${KEYCLOAK_PORT_HTTP_DEV}
     volumes:
       - ./keycloak_home/config:/config                                           # import config realm and user
       - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog  # import themes

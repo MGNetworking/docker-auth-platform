@@ -4,7 +4,7 @@
 * [Lancement](#lancement)
 * [Sauvegarde & Restauration](#sauvegarde-et-restauration)
 * [Dockerfile](#dockerfile)
-* [Python](#python)
+* [Les Scripts de sauvegarde](#les-scripts-de-sauvegarde)
 * [Les services](#les-services)
     * [PostgreSQL](#postgresql)
     * [Keycloak](#keycloak)
@@ -33,67 +33,6 @@ une base de données mémoire `H2` et utilisé.
 Dans le cadre de ce projet le service `postgres-db` est utilisé. Toutes les données de l'application
 se trouvent donc en base de données.
 
-__Les Scripts__
-
-1. **Le Script `run.sh`**  
-   Il Permet, de lancement les services `postrges-db` et `keycloak` via le docker compose en créant
-   au préalable les volumes nécessaires au fonctionnement des projets.
-   Après une series d'instruction, il lance le docker compose en mode détaché, puis lance les logs.
-
-
-2. **Le script `down.sh`**  
-   Ce script permet d'arrêter et de supprimer les services conteneuriser. Il ne touche à rien d'autre.
-
-
-3. **Le script `kc_sh_backup.sh`**   
-   Ce script permet d'exécuter une sauvegarde du schéma et de ces objets `kc_sh` et de placé
-   cette sauvegarde dans le répertoire `/docker-entrypoint-initdb.d`. Ce répertoire permet d'exécuter
-   une série de scripts, dans l'ordre alphabétique au démarrage du conteneur `postgres-db`
-
-
-4. **Le script `db-save_kc.py` et `db-save_blog.py`**  
-   Ces scripts font deux choses :
-    * En 1er parti, créer un fichier au format `dump` puis, à partir de ce fichier, il créait une archive de
-      celui-ci et supprime le fichier `dump` de base.
-    * En 2ᵉ parti, il crée un fichier sql et le place dans le répertoire init.
-      Le répertoire `init` contient les scripts de lancement pour la génération des bases de données.
-
-   **Objectif :**  
-   Le fichier d'archive `.tar.gz` est utilisé pour restaurer la BD `kc_db` de manière complet
-   en cours d'exécution du conteneur keycloak.
-   Le fichier sql contient les données à jour pour un 1er lancement de conteneur.
-
-   Cela permet de gérer deux cas de figure. La restauration rapide de BD via l'archive `.tar.gz`
-   par l'intermédiaire du script nommé `restore_kc.py` ou la création d'un conteneur
-   avec la base de données et le schéma actualisé.
-
-
-5. **Le script `restore_kc.py` et `restore_blog.py`**  
-   Le script `restore_kc.py` permet de restaurer la base de données `kc_db`  de manière complète et le
-   script `restore_blog.py` permet de restaurer la base de données `ghoverblog` de manière complète
-   A la fin de chaque script, une vérification de l'état du schéma cible est exécuté.
-
-
-6. **Le Script `task_db.sh`**
-   Ce script permet de créer la planification de deux tâches de sauvegarde
-   des bases de données `kc_db` pour keycloak et `ghoverblog` pour le blog
-   Ces tâches seront exécuter à minuit chaque jour sur le serveur.
-
-L'édition d'une tâche dans cron :
-
-```shell
-crontab -e    # éditeur de text pour modification des tâches (éditeur par défaut)
-```
-
-Check sont status : `sudo service cron status`  
-Check la liste des tâches : `crontab -l`  
-Check les services crontab : `ps aux | grep cron`  
-Check le process ID : `pgrep cron`  
-Check son fichier de config `sudo nano /etc/crontab`  
-Check la dernière ligne du fichier d'entrée `tail -f /var/log/syslog | grep "cron"`  
-Voir les logs : `tail -f /var/log/syslog`  
-Sa journalisation `journalctl -u cron.service`
-
 ## Lancement
 
 Pour lancer l'exécution de ce projet, vous devez modifier les droits d'exécution du fichier `run.sh`.
@@ -101,22 +40,30 @@ Ce fichier est le script de lancement du projet.
 Le script permettra de créer les volumes `keycloak_home` et `postgres_home` avec les droits utilisateurs
 a la création des services conteneurs.
 
-Modification des droits d'exécution :
+1. **Le Script de lancement `run.sh`**  
+   Ce script proposera une liste d'environnement. Ces environnements sont en relation avec les ``docker-compose``
+   présent dans le projet.
+   Dans 1er temps le `docker compose` lancera la construction des images contenue dans les `dockerfiles` cible.
+   Puis, Le `docker compose` lancera la construction des conteneurs `postrges-db` et `keycloak`.
+   La construction de ces images a un ordre de priorité. l'ordre de priorité prévu que le conteneur `postrges-db` puis
+   se déployer avant `keycloak`.
+   Dans les faits, le 2 conteneur son lancer, mais `keycloak` a besoin de localisé le serveur de base de données
+   ce qui pour effet de coupé le deployment de `keycloak` pour que `postrges-db` puisse prendre le relay est déployé
+   la base de données nécessaire keycloak.
 
-```shell
-sudo chmod +x run.sh                    # Lancement et création des conteneurs
-sudo chmod +x down.sh                   # Arrêt et Suppression des conteneurs 
-sudo chmod +x backup_schema.sh   # Backup Schema kc_sh pour le DEV
-sudo chmod +x task_db.sh                # planification des taches Crontab
-```
-
-1. Lancement du docker compose
+En résumer le ``docker compose`` sera exécuter via le script `run.sh` prévu a cet effet, puis construira les images
+dans le dockerfile et construira avec un ordre de priorité les conteneurs `postrges-db` et `keycloak`
 
 ```shell
 ./run.sh
 ```
 
-2. Arrêter et supprimer les conteneurs
+2. **Le script de suppression des services `down.sh`**  
+   Ce script proposera une liste d'environnement dans lequel vous devez sélectionner l'environnement sur lequel
+   est déployé le projet.
+   Il permet d'arrêter et de supprimer les services conteneuriser. Attention ce script ne supprime pas
+   le dossier ``postgres/data`` qui le répertoire de données persistantes de `Postgres`.
+   Il ne supprime pas non plus le ou les images créées via les dockerfiles.
 
 ```shell
 ./down.sh
@@ -124,19 +71,36 @@ sudo chmod +x task_db.sh                # planification des taches Crontab
 
 ### Sauvegarde et Restauration
 
-Il y a 2 projets permettent la sauvegarde
+Le 1er projet ``Python`` permet de :
 
-Le 1er projet ``Python`` dont le script de fait 2 sauvegarde, une sauvegarde au format compressé `tar.gz`qui sera
-envoyer
-dans le dossier historique ``/var/backups/[nam database]``
-Et puis de créer une sauvegarde avec option `--clean` dans le fichier ``/docker-entrypoint-initdb.d`` au format ``SQL``
+**Créer le dossier de sauvegarde**  
+en rapport avec la base de données cible. Ce dossier contiendra l'historique de la base
+de données cible ce dossier se trouve dans : ``/var/backups/``  
+Puis, après création du dossier d'accueil, une sauvegarde de chaque base de données et réalisé au format compressé
+`tar.gz` pour être placé ensuite dans son dossier historique en correspondance.
 
-Le 2ᵉ projet ``Bash`` dont le script ``backup_schema.sh`` permet de faire aussi une sauvegarde avec option `--clean`
-dans le fichier
-``/docker-entrypoint-initdb.d`` au format ``SQL``
+**Crée une sauvegarde qui est réalisée avec option `--clean`**   
+ce qui permet d'inclure des instructions ``SQL DROP TABLE ``et ``DROP SEQUENCE`` dans le fichier de sauvegarde généré.
+Cela signifie que le fichier de sauvegarde contiendra des commandes SQL pour supprimer (DROP) les tables et les
+séquences existantes avant de les recréer et d'y restaurer les données.  
+Cette sauvegarde permet une réinitialisation complète de la structure de la base de données existante.
+L'utilisation de l'option ``--clean`` n'affecte pas la sauvegarde des données. Les données sont toujours incluses
+dans le fichier de sortie généré.
 
-Les scripts ``.sql`` contenus dans le dossier ``/docker-entrypoint-initdb.d`` permette de mettre à jour les bases de
-données cible à chaque redémarrage du service de bases de données PostgreSQL.
+**Créer une autre sauvegarde sans option**  
+qui sera au format sql puis place dans le ``/docker-entrypoint-initdb.d``. Elle sera sans extension ``.sql``
+volontairement pour ne pas être interprété directement pas le service ``Postrges``.
+Ce fichier devra être exécuté par un autre fichier qui sera responsable de son exécution au lancement. Le fichier
+responsable de son lancement devra créer la base de données en correspondance ensuite, exécutera le fichier sans
+extension.
+
+Le 2er projet ``Bash`` permet de :  
+faire exactement la méme chose que la création sans option citée précédemment
+
+**L'ordre d'exécution du fichier ``/docker-entrypoint-initdb.d``**  
+Le fonctionnement du service postgres possède un ordre de lancement des scripts de ce dossier.
+En 1er, il exécute dans l'ordre alphabétique les fichiers placer dans ce dossier et n'exécute que les
+fichiers portant l'extension `.sql`
 
 ````shell
 # Dossier de sauvegarde PostgreSQL
@@ -152,34 +116,6 @@ python /home/maxime/script/main.py
 /home/maxime/script/backup_schema.sh
 ```
 
-4. Lancer de la programmation des tâches géré par le service `crontab`
-
-```shell
-./task_db.sh
-```
-
-```shell
-python db-save_kc.py 
-```
-
-Lancement du script de **Sauvegarde** de la base de données `ghoverblog`
-
-```shell
-python db-save_blog.py 
-```
-
-Lancement du script de **Restauration** de la base de données `kc_db`
-
-```shell
-python restore_kc.py 
-```
-
-Lancement du script de restauration de la base de données `ghoverblog`
-
-```shell
-python restore_blog.py 
-```
-
 ## Dockerfile
 
 Le Dockerfile provient du
@@ -193,14 +129,29 @@ construction, d'utiliser certain fichier qui lui sont utile en phase de construc
 
 ````dockerfile
 RUN apk add --no-cache openssh-server; \
+    apk add --no-cache python3; \
+    apk add --no-cache jq; \
     apk add --no-cache nano; \
     apk add --no-cache sudo; \
     rm -rf /var/cache/apk/*
 ````
 
-La commande ``rm -rf /var/cache/apk/`` est utilisée pour supprimer le contenu du répertoire /var/cache/apk/ sur un
-système
-d'exploitation basé sur Alpine Linux
+**apk add --no-cache python3**  
+Cette instruction installe Python 3 de la même manière que précédemment.
+
+**apk add --no-cache jq**
+Cette instruction installe le paquet jq, un outil de traitement de JSON en ligne de commande.
+
+**apk add --no-cache nano**
+Cette instruction installe le paquet nano, un éditeur de texte en ligne de commande.
+
+**apk add --no-cache sudo**
+Cette instruction installe le paquet sudo, qui permet aux utilisateurs d'exécuter des commandes en tant qu'autres
+utilisateurs.
+
+**rm -rf /var/cache/apk/x**  
+Cette instruction supprime les fichiers de cache téléchargés par apk, ce qui peut aider à réduire la taille de l'image
+Docker.
 
 * rm : C'est la commande principale pour supprimer des fichiers et des répertoires sous Unix/Linux.
 * -rf : Ce sont des options fournies à la commande rm :
@@ -257,8 +208,8 @@ permettent la gestion de la connexion distante.
 **Les scripts d'exécution**
 
 ````dockerfile
-COPY config_dockerfile/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-COPY config_dockerfile/start.sh /usr/local/bin/start.sh
+COPY config_dockerfile/run_script/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY config_dockerfile/run_script/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 ````
 
@@ -271,7 +222,63 @@ Le fichier ``start.sh``
 Ce fichier est le script d'exécution des services ssh et PostgreSQL.
 Il est lancé à la création du conteneur est au redémarrage de celui-ci.
 
-## Python
+**Les droits d'accès utilisateur**
+
+````dockerfile
+RUN adduser -D -h /home/maxime -s /bin/bash maxime
+RUN adduser maxime wheel
+RUN echo "maxime:fkfJocJBg6A6BI8rFwXh" | chpasswd
+RUN echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/maxime
+````
+
+Pour pourvoir avoir un accès au service ssh, un utilisateur et créer avec son espace personnelle. ce qui permettra de
+stocker les scripts de sauvegarde ainsi que les logs en correspondance.
+On ajoute l'utilisateur au groupe wheel qui associé à la gestion des droits d'administration et de super utilisateur.
+On affecte un mom de passe à cet utilisateur ce qui lui permettra en autre de ce connecter via ``ssh``.
+Puis ont accord des droits cet utilisateur. Ces droits sont inscrit dans le fichier maxime dans le
+dossier ``/etc/sudoers.d``
+
+**Les repertoires des scripts et des logs**
+
+````dockerfile
+RUN mkdir -p /home/maxime/script/
+RUN mkdir -p /home/maxime/logs/
+RUN chown maxime:maxime /home/maxime -R
+````
+
+On crée les repertoires d'accueil ``/script`` et `/logs` puis on change le propriétaire de manière récursive du
+repertoire ``/home/maxime``.
+
+
+
+## Les Scripts de sauvegarde
+
+Décrire les scripts python et bash
+ne pas oublier de dire que les fichiers de sauvegarde dans le dossier init recept un ordre
+d'exécution 00 / 01 et que seul le fichier avec l'extension .sql sont prise en compte
+et que c'est pour cela que les fichiers de sorti xxxx_backup n'ont pas d'extension .sql
+
+## TODO a voir
+
+**Le Script `task_db.sh`**  
+Ce script permet de créer la planification de deux tâches de sauvegarde
+des bases de données `kc_db` pour keycloak et `ghoverblog` pour le blog
+Ces tâches seront exécuter à minuit chaque jour sur le serveur.
+
+L'édition d'une tâche dans cron :
+
+```shell
+crontab -e    # éditeur de text pour modification des tâches (éditeur par défaut)
+```
+
+Check sont status : `sudo service cron status`  
+Check la liste des tâches : `crontab -l`  
+Check les services crontab : `ps aux | grep cron`  
+Check le process ID : `pgrep cron`  
+Check son fichier de config `sudo nano /etc/crontab`  
+Check la dernière ligne du fichier d'entrée `tail -f /var/log/syslog | grep "cron"`  
+Voir les logs : `tail -f /var/log/syslog`  
+Sa journalisation `journalctl -u cron.service`
 
 **L'environnement python**
 
