@@ -1,5 +1,9 @@
 FROM alpine:3.18
 
+ARG PORT_SSH
+ARG PORT_POSTGRES
+ARG MDP_USER
+
 # 70 is the standard uid/gid for "postgres" in Alpine
 # https://git.alpinelinux.org/aports/tree/main/postgresql/postgresql.pre-install?h=3.12-stable
 RUN set -eux; \
@@ -189,11 +193,12 @@ COPY config_dockerfile/id_ed25519.pub /etc/ssh/id_ed25519.pub
 # le fichier de configuration ssh et sftp
 COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
 
+################### Les scripts d'exécutions du conteneur
 # le script de déploiment de postgres
-COPY config_dockerfile/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY config_dockerfile/run_script/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # le fichier d'exécution du projet
-COPY config_dockerfile/start.sh /usr/local/bin/start.sh
+COPY config_dockerfile/run_script/start.sh /usr/local/bin/start.sh
 
 # rendre ce script exécutable
 RUN chmod +x /usr/local/bin/start.sh
@@ -206,7 +211,7 @@ RUN adduser -D -h /home/maxime -s /bin/bash maxime
 RUN adduser maxime wheel
 
 # Créez mdp pour le user
-RUN echo "maxime:fkfJocJBg6A6BI8rFwXh" | chpasswd
+RUN echo "maxime:$MDP_USER" | chpasswd
 
 # Accorde des droits sudo au user
 RUN echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/maxime
@@ -216,16 +221,17 @@ RUN echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/maxime
 RUN mkdir -p /home/maxime/script/
 RUN mkdir -p /home/maxime/logs/
 
+# Copie des scripts
+COPY config_dockerfile/save_script/* /home/maxime/script/
 
 # Donnes les droits utilisateur
 RUN chown maxime:maxime /home/maxime -R
 
 # rendre tout les script dans ce dossier exécutable
-RUN find /home/maxime/script/ -type f -name "*.sh" -exec chmod +x {} \;
+# RUN find /home/maxime/script/ -type f -name "*.sh" -exec chmod +x {} \;
 
-#  postgres 5432 | ssh et sftp 22
-EXPOSE 5432
-EXPOSE 22
+EXPOSE $PORT_POSTGRES
+EXPOSE $PORT_SSH
 
 # Point d'entre de l'application
 ENTRYPOINT ["/usr/local/bin/start.sh"]

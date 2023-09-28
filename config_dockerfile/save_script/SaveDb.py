@@ -32,7 +32,7 @@ class SaveDb:
         SaveDb.logger.info(f"Commande {liste_cmd[0]}")
 
         # Sauvegarde au format SQL
-        liste_cmd.append(f"pg_dump -U {db_user} -d {db_name} -f {path_init}/{db_name}_backup.sql")
+        liste_cmd.append(f"pg_dump -U {db_user} -d {db_name} -f {path_init}/{db_schema}_backup")
         SaveDb.logger.info(f"Commande {liste_cmd[1]}")
 
         try:

@@ -12,5 +12,5 @@ CREATE DATABASE ghoverblog
 \c ghoverblog
 
 -- Restauration de la sauvegarde SQL
--- Ce fichier contient un Backup du schema ms_article
-\i /docker-entrypoint-initdb.d/ms_article_backup.sql.bak
+-- Ce fichier contient un Backup du schema ms_article au format SQL
+\i /docker-entrypoint-initdb.d/ms_article_backup

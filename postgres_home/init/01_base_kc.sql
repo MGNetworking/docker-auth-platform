@@ -12,5 +12,5 @@ CREATE DATABASE kc_db
 \c kc_db
 
 -- Restauration de la sauvegarde SQL
--- Ce fichier contient un Backup du schema kc_sh
-\i /docker-entrypoint-initdb.d/kc_sh_backup.sql.bak
+-- Ce fichier contient un Backup du schema kc_sh au format SQL
+\i /docker-entrypoint-initdb.d/kc_sh_backup
