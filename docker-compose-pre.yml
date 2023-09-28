@@ -20,6 +20,7 @@ services:
       args:
         PORT_SSH: ${port_ssh}             # Port interne SSH
         PORT_POSTGRES: ${port_postgres}   # Port interne Postgres
+        MDP_USER: ${mdp_user}
     restart: unless-stopped
     ports:
       - ${PG_PORT}
