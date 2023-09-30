@@ -1,6 +1,7 @@
 import datetime
-import os
 import logging
+import os
+import sys
 
 
 class Dossier:
@@ -25,7 +26,7 @@ class Dossier:
         current_month = now.month
 
         Dossier.logger.info("Créer des repertoires historique")
-        Dossier.logger.info(f"pour la schema {db_name} sur la base de données {db_name}")
+        Dossier.logger.info(f"pour la schema {db_name} sur la base de données {db_schema}")
 
         if self.mode_actif:
             path_hist = f"/var/backups/{db_name}/{db_schema}/year_{current_year}/month_{current_month}"
@@ -34,7 +35,11 @@ class Dossier:
 
         Dossier.logger.info(f"path_hist => {path_hist} ")
 
-        if not os.path.exists(path_hist):
-            os.makedirs(path_hist)
+        try:
+            if not os.path.exists(path_hist):
+                os.makedirs(path_hist)
+        except OSError as e:
+            Dossier.logger.exception(f"Vous n'avez pas les droits sur le dossier : {path_hist} ")
+            sys.exit(1)
 
         return path_hist
