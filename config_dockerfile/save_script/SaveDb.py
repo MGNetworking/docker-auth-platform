@@ -15,6 +15,7 @@ class SaveDb:
         Cette methode permet d'exécuter 2 type de sauvegarde :
         Une sauvegarde au format binaire compressé spécifique à PostgreSQL.
         Une sauvegarde au format SQL
+        :param db_schema: le nom du schema de base de données.
         :param path_init: Le chemin vers le dossier de postgres : docker-entrypoint-initdb.d
         :param path_history: Le chemin vers le dossier de sauvegarde historique
         :param db_user: Le nom de la base de données
@@ -28,11 +29,11 @@ class SaveDb:
 
         # Sauvegarde au format d'archivage tar.gz (fichier binaire compressé)
         liste_cmd: list = [
-            f"pg_dump -U {db_user} -d {db_name} -F t --clean -f {path_history}/{name_file_history}.tar.gz"]
+            f"pg_dump -U {db_user} -d {db_name} --verbose -F t --clean -f {path_history}/{name_file_history}.tar.gz"]
         SaveDb.logger.info(f"Commande {liste_cmd[0]}")
 
         # Sauvegarde au format SQL
-        liste_cmd.append(f"pg_dump -U {db_user} -d {db_name} -f {path_init}/{db_schema}_backup")
+        liste_cmd.append(f"pg_dump -U {db_user} -d {db_name} --verbose -f {path_init}/{db_schema}_backup")
         SaveDb.logger.info(f"Commande {liste_cmd[1]}")
 
         try:

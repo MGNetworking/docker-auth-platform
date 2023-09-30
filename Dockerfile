@@ -197,11 +197,15 @@ COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
 # le script de déploiment de postgres
 COPY config_dockerfile/run_script/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-# le fichier d'exécution du projet
+# Le fichier d'exécution du projet
 COPY config_dockerfile/run_script/start.sh /usr/local/bin/start.sh
-
 # rendre ce script exécutable
 RUN chmod +x /usr/local/bin/start.sh
+
+# le script d'accès path
+COPY config_dockerfile/run_script/access.sh /usr/local/bin/access.sh
+# rendre ce script exécutable
+RUN chmod +x /usr/local/bin/access.sh
 
 ################### Les droits d'accès user maxime
 # Créez un dossier perso pour le user maxime et spécifie le shell par défault
@@ -226,6 +230,7 @@ COPY config_dockerfile/save_script/* /home/maxime/script/
 
 # Donnes les droits utilisateur
 RUN chown maxime:maxime /home/maxime -R
+RUN chown maxime:maxime /docker-entrypoint-initdb.d -R
 
 # rendre tout les script dans ce dossier exécutable
 # RUN find /home/maxime/script/ -type f -name "*.sh" -exec chmod +x {} \;
