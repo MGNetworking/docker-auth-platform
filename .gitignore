@@ -8,9 +8,6 @@ python/venv
 /postgres_home/data/*
 /postgres_home/backups/*
 
-# Fichier de logs
-/home/logs/data.log
-
 # fichier de création de répertoir (Script python)
 /python/ghoverblog
 /python/kc_db

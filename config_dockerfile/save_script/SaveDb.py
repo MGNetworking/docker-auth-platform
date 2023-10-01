@@ -29,11 +29,11 @@ class SaveDb:
 
         # Sauvegarde au format d'archivage tar.gz (fichier binaire compressé)
         liste_cmd: list = [
-            f"pg_dump -U {db_user} -d {db_name} --verbose -F t --clean -f {path_history}/{name_file_history}.tar.gz"]
+            f"pg_dump -U {db_user} -d {db_name} -F t --clean -f {path_history}/{name_file_history}.tar.gz"]
         SaveDb.logger.info(f"Commande {liste_cmd[0]}")
 
         # Sauvegarde au format SQL
-        liste_cmd.append(f"pg_dump -U {db_user} -d {db_name} --verbose -f {path_init}/{db_schema}_backup")
+        liste_cmd.append(f"pg_dump -U {db_user} -d {db_name} -f {path_init}/{db_schema}_backup")
         SaveDb.logger.info(f"Commande {liste_cmd[1]}")
 
         try:
