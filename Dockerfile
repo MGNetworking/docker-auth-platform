@@ -242,5 +242,6 @@ EXPOSE $PORT_SSH
 ENTRYPOINT ["/usr/local/bin/start.sh"]
 STOPSIGNAL SIGINT
 
-# argument a tendu
-CMD ["postgres"]
+# argument $1 pour l'exécution de postrges
+# argument $2 pour le script ayant besion de droit
+CMD ["postgres", "$MDP_USER"]
