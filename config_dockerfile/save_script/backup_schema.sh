@@ -46,7 +46,7 @@ done <<< "$access_list"
 # pour chaque BD
 while IFS= read -r schema_entry; do
   DB_NAME=$(echo "$schema_entry" | jq -r '.DB_NAME')
-  pg_dump -U ${DB_USER} -d ${DB_NAME} -f "/docker-entrypoint-initdb.d"/${DB_NAME}"_backup.sql"
+  pg_dump -U ${DB_USER} -d ${DB_NAME} -f "/docker-entrypoint-initdb.d"/${DB_SCHEMA}"_backup"
 done <<< "$db_list"
 
 

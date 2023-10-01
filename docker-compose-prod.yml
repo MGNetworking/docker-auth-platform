@@ -20,7 +20,11 @@ services:
       args:
         PORT_SSH: ${port_ssh}             # Port interne SSH
         PORT_POSTGRES: ${port_postgres}   # Port interne Postgres
-        MDP_USER: ${mdp_user}
+        MDP_USER: ${mdp_user}             # mdp acces SSH conteneur docker
+        ACCESS_USER: ${user_access}       # le nom du user acces docker
+        PATH_BACKUP: ${path_backup}       # le chemin interne du conteneur
+        PATH_LOGS: ${path_logs}           # le chemin d'accès aux logs
+        PATH_SCRIPT: ${path_script}       # le chemin d'accès aux scripts
     restart: unless-stopped
     ports:
       - ${PG_PORT}
@@ -61,7 +65,7 @@ services:
       # Résolution du nom d'host interne de keycloak dans docker
       # Permet l'accès par le nom de domain (interne au conteneur)
       KEYCLOAK_HOSTNAME: ${HOSTNAME_PROD}         # Sur le serveur de production
-      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_prod}    # définit le port host interne
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_PROD}    # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
       
       # Si la base de données est déjà créer , as besoin d'utilisé les paramétre ci-dessous 
