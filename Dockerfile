@@ -2,7 +2,11 @@ FROM alpine:3.18
 
 ARG PORT_SSH
 ARG PORT_POSTGRES
+ARG ACCESS_USER
 ARG MDP_USER
+ARG PATH_BACKUP
+ARG PATH_LOGS
+ARG PATH_SCRIPT
 
 # 70 is the standard uid/gid for "postgres" in Alpine
 # https://git.alpinelinux.org/aports/tree/main/postgresql/postgresql.pre-install?h=3.12-stable
@@ -170,70 +174,52 @@ ENV PGDATA /var/lib/postgresql/data
 RUN mkdir -p "$PGDATA" && chown -R postgres:postgres "$PGDATA" && chmod 1777 "$PGDATA"
 VOLUME /var/lib/postgresql/data
 
-###################################### Installation personaliser ###################
-################### Installation
-# Installe OpenSSH Server, puis installe Nano et sudo, et enfin supprime le cache des paquets APK
+###################################### Installation personnalisée
+# Installe des services + nettoyage des paquets
 RUN apk add --no-cache openssh-server; \
     apk add --no-cache python3; \
     apk add --no-cache jq; \
     apk add --no-cache nano; \
     apk add --no-cache sudo; \
-    rm -rf /var/cache/apk/*
+    rm -rf /var/cache/apk/*; \
+    python --version; \
+    ssh-keygen -A
 
-################### python
-RUN python --version
-
-################### Open ssh + PostgreSQL
-# création de clef HostKey
-RUN ssh-keygen -A
-
-# Une clef public pour être connecter
+# configuration SSH
+COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
 COPY config_dockerfile/id_ed25519.pub /etc/ssh/id_ed25519.pub
 
-# le fichier de configuration ssh et sftp
-COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
-
-################### Les scripts d'exécutions du conteneur
-# le script de déploiment de postgres
+################### Les scripts de déploimentr
 COPY config_dockerfile/run_script/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-
-# Le fichier d'exécution du projet
 COPY config_dockerfile/run_script/start.sh /usr/local/bin/start.sh
-# rendre ce script exécutable
-RUN chmod +x /usr/local/bin/start.sh
-
-# le script d'accès path
 COPY config_dockerfile/run_script/access.sh /usr/local/bin/access.sh
+
 # rendre ce script exécutable
-RUN chmod +x /usr/local/bin/access.sh
+RUN chmod +x /usr/local/bin/start.sh; \
+    chmod +x /usr/local/bin/access.sh
 
-################### Les droits d'accès user maxime
-# Créez un dossier perso pour le user maxime et spécifie le shell par défault
-RUN adduser -D -h /home/maxime -s /bin/bash maxime
+################### Les droits d'accès
+RUN set -eux; \
+	addgroup -g 90 -S $ACCESS_USER; \
+	adduser -u 90 -S -D -G $ACCESS_USER -H -h /home/$ACCESS_USER -s /bin/bash $ACCESS_USER; \
+    adduser $ACCESS_USER wheel; \
+    echo "$ACCESS_USER:$MDP_USER" | chpasswd
 
-# Ajout le user au groupe wheel (associé à la gestion des droits d'administration et de superutilisateur)
-RUN adduser maxime wheel
+run echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/$ACCESS_USER
 
-# Créez mdp pour le user
-RUN echo "maxime:$MDP_USER" | chpasswd
-
-# Accorde des droits sudo au user
-RUN echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/maxime
-
-################### les scripts de sauvegarde
-# Création du dossier de script
-RUN mkdir -p /home/maxime/script/
-RUN mkdir -p /home/maxime/logs/
+# Les chemins d'accès
+RUN mkdir -p $PATH_SCRIPT; \
+    mkdir -p $PATH_LOGS; \
+    mkdir -p $PATH_BACKUP
 
 # Copie des scripts
-COPY config_dockerfile/save_script/* /home/maxime/script/
+COPY config_dockerfile/save_script/* $PATH_SCRIPT
 
-# Donnes les droits utilisateur
-RUN chown maxime:maxime /home/maxime -R
-RUN chown maxime:maxime /docker-entrypoint-initdb.d -R
-
-# rendre tout les script dans ce dossier exécutable
-# RUN find /home/maxime/script/ -type f -name "*.sh" -exec chmod +x {} \;
+# modifier le propriétaire + droit d'exécution
+RUN chown $ACCESS_USER:$ACCESS_USER /home/maxime -R; \
+    chown $ACCESS_USER:$ACCESS_USER /docker-entrypoint-initdb.d -R ; \
+    chown $ACCESS_USER:$ACCESS_USER /var/backups -R; \
+    chmod +x /var/backups -R
 
 EXPOSE $PORT_POSTGRES
 EXPOSE $PORT_SSH
@@ -242,6 +228,5 @@ EXPOSE $PORT_SSH
 ENTRYPOINT ["/usr/local/bin/start.sh"]
 STOPSIGNAL SIGINT
 
-# argument $1 pour l'exécution de postrges
-# argument $2 pour le script ayant besion de droit
+# arg $1  postrges arg $2 le script access
 CMD ["postgres", "$MDP_USER"]
