@@ -29,7 +29,6 @@ services:
     ports:
       - ${PG_PORT}        # Port externe Postgres
       - ${SSH_SFTP_PORT}  # Port externe SSH
-    user: ${user}:${groupe}   # Le user et le groupe interne conteneur (définit dans l'images)
     volumes: # Le conteneur possède les permissions lecutre et écriture sur les volumes.
       - ./postgres_home/backups:/var/backups:rw                 # Fichier historique de sauvegarde
       - ./postgres_home/data:/var/lib/postgresql/data:rw        # Dossier de persistance quand le conteneur à l'arrêt
