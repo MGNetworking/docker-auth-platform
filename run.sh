@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Ce script permet de lancer l'exécution du docker compose et d'initialisé les repertoires.
+
+
+# Vérifie si le script est exécuté avec sudo
+if [ "$EUID" -ne 0 ]; then
+    echo "Ce script nécessite des privilèges d'administrateur. Veuillez entrer votre mot de passe."
+    sudo "$0" "$@"  # Exécutez à nouveau le script avec sudo
+    exit 1
+fi
+
 env=("dev" "pre" "prod" "nas")
 echo "Lancement du programme, valeur d'entrée utilisateur : $1"
 echo "Choisissez l'environnement de deployment :"
@@ -25,21 +35,23 @@ fi
 if $trouver; then
     echo "Le programme sera exécuté dans l'environnement suivant : $selection"
     
-     Création des dossiers
-    mkdir -p postgres_home/backups
-    mkdir -p postgres_home/data
+    # Création des dossiers
+    sudo mkdir -p postgres_home/backups
+    sudo mkdir -p postgres_home/data
 
-    # Changer le propriétaire et le groupe des dossiers
-    sudo chown -R maxime:maxime postgres_home
-    sudo chown -R maxime:maxime keycloak_home
+    sudo chown 90:70 postgres_home/backups/ -R
+    sudo chown 90:70 postgres_home/data/ -R
+    sudo chown 90:70 postgres_home/init/ -R
 
     # Accorder les permissions en lecture / écriture / exécution
-    sudo chmod -R 770 postgres_home
-    sudo chmod -R 770 keycloak_home
+    # sudo chmod -R 0777 postgres_home/
+    sudo chmod -R 0770 postgres_home/backups/
+    sudo chmod -R 0770 postgres_home/init/
 
     # Création de l'image et du conteneur avec reconstruction via --build
     docker-compose -f docker-compose-"$selection".yml up -d --build
     docker-compose -f docker-compose-"$selection".yml logs -f
+
 else
     echo "Le paramètre de programmation n'a pas été trouvé."
 fi
