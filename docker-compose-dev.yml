@@ -29,9 +29,10 @@ services:
     ports:
       - ${PG_PORT}        # Port externe Postgres
       - ${SSH_SFTP_PORT}  # Port externe SSH
-    volumes:
-      - ./postgres_home/backups:/var/backups:rw                 # fichier historique de sauvegarde
-      - ./postgres_home/data:/var/lib/postgresql/data:rw        # dossier de persistance quand le conteneur à l'arrêt
+    user: ${user}:${groupe}   # Le user et le groupe interne conteneur (définit dans l'images)
+    volumes: # Le conteneur possède les permissions lecutre et écriture sur les volumes.
+      - ./postgres_home/backups:/var/backups:rw                 # Fichier historique de sauvegarde
+      - ./postgres_home/data:/var/lib/postgresql/data:rw        # Dossier de persistance quand le conteneur à l'arrêt
       - ./postgres_home/init:/docker-entrypoint-initdb.d:rw     # Script d'exécution au lancement
     env_file:
       - .env
@@ -50,8 +51,8 @@ services:
     ports:
       - ${KEYCLOAK_PORT_HTTP_DEV}
     volumes:
-      - ./keycloak_home/config:/config                                           # import config realm and user
-      - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog  # import themes
+      - ./keycloak_home/config:/config:rw         # Import config realm and user
+      - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog:rw  # import thèmes
     env_file:
       - .env
     environment:
@@ -67,7 +68,7 @@ services:
       KEYCLOAK_HOSTNAME: ${HOSTNAME_LOCALHOST}    # Sur le serveur Nas synology
       KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_DEV}     # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
-      
+
       # Si la base de données est déjà créé, as besoin d'utilisé les paramètres ci-dessous
       # Ces paramètres sont pour 1ʳᵉ création de la base de données keycloak UNIQUEMENT
       #KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
