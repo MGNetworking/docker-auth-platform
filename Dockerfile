@@ -189,41 +189,60 @@ RUN apk add --no-cache openssh-server; \
 COPY config_dockerfile/sshd_config /etc/ssh/sshd_config
 COPY config_dockerfile/id_ed25519.pub /etc/ssh/id_ed25519.pub
 
-################### Les scripts de déploimentr
+################### Les scripts de déploiment
 COPY config_dockerfile/run_script/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY config_dockerfile/run_script/start.sh /usr/local/bin/start.sh
 COPY config_dockerfile/run_script/access.sh /usr/local/bin/access.sh
 
-# rendre ce script exécutable
-RUN chmod +x /usr/local/bin/start.sh; \
-    chmod +x /usr/local/bin/access.sh
-
-################### Les droits d'accès
+################### Création des droits d'accès user / groupe
 RUN set -eux; \
 	addgroup -g 90 -S $ACCESS_USER; \
 	adduser -u 90 -S -D -G $ACCESS_USER -H -h /home/$ACCESS_USER -s /bin/bash $ACCESS_USER; \
     adduser $ACCESS_USER wheel; \
     echo "$ACCESS_USER:$MDP_USER" | chpasswd
 
+# Cette commande est destinée à ajouter une règle au fichier de configuration
+# sudoers qui autorise l'utilisateur Maxime à exécuter n'importe quelle commande
 run echo "maxime ALL=(ALL) ALL" | tee /etc/sudoers.d/$ACCESS_USER
+
+# Ajoutez une nouvelle règle pour permettre à Maxime d'exécuter sshd et le script sans mot de passe
+RUN echo "maxime ALL=(ALL) NOPASSWD: /usr/sbin/sshd" | tee -a /etc/sudoers.d/$ACCESS_USER
+RUN echo "maxime ALL=(ALL) NOPASSWD: /usr/local/bin/access.sh" | tee -a /etc/sudoers.d/$ACCESS_USER
+
+# Attribution des users aux scripts
+RUN chown 90:70 /usr/local/bin/start.sh; \
+    chown 90:70 /usr/local/bin/access.sh; \
+    chown 90:70 /usr/local/bin/docker-entrypoint.sh
+
+# Attribution des droits aux scripts
+RUN chmod 0770 /usr/local/bin/start.sh; \
+    chmod 0770 /usr/local/bin/access.sh; \
+    chmod 0770 /usr/local/bin/docker-entrypoint.sh
 
 # Les chemins d'accès
 RUN mkdir -p $PATH_SCRIPT; \
     mkdir -p $PATH_LOGS; \
     mkdir -p $PATH_BACKUP
 
-# Copie des scripts
+# Copie des scripts de sauvegarde
 COPY config_dockerfile/save_script/* $PATH_SCRIPT
+# Rendre tout les scripts exécutable
+RUN find $PATH_SCRIPT -type f -name "*.sh" -exec chmod 770 {} \;
 
 # modifier le propriétaire + droit d'exécution
 RUN chown $ACCESS_USER:$ACCESS_USER /home/maxime -R; \
-    chown $ACCESS_USER:$ACCESS_USER /docker-entrypoint-initdb.d -R ; \
     chown $ACCESS_USER:$ACCESS_USER /var/backups -R; \
-    chmod +x /var/backups -R
+    chown $ACCESS_USER:$ACCESS_USER /docker-entrypoint-initdb.d
+
+# modifier sur les droit user et group
+RUN chmod 0770 /home/maxime -R; \
+    chmod 0770 /var/backups -R; \
+    chmod 0770 /docker-entrypoint-initdb.d
 
 EXPOSE $PORT_POSTGRES
 EXPOSE $PORT_SSH
 
+USER maxime
 # Point d'entre de l'application
 ENTRYPOINT ["/usr/local/bin/start.sh"]
 STOPSIGNAL SIGINT
