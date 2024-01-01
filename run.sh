@@ -45,11 +45,14 @@ if $trouver; then
 
     # Accorder les permissions en lecture / écriture / exécution
     # sudo chmod -R 0777 postgres_home/
-    sudo chmod -R 0770 postgres_home/backups/
-    sudo chmod -R 0770 postgres_home/init/
+    sudo chmod -R 0777 postgres_home/backups/
+    sudo chmod -R 0777 postgres_home/init/
 
-    # Création de l'image et du conteneur avec reconstruction via --build
-    docker-compose -f docker-compose-"$selection".yml up -d --build
+    # Cela lancera le processus de construction de l'image sans utiliser le cache
+    docker-compose -f docker-compose-"$selection".yml --build --no-cache
+    # lancer les conteneurs en mode détaché après la construction
+    docker-compose -f docker-compose-"$selection".yml up -d
+    # affiche les logs
     docker-compose -f docker-compose-"$selection".yml logs -f
 
 else
