@@ -12,7 +12,7 @@ volumes:
 services:
   # Configuration de postgres
   postgres:
-    image: postgres-ssh-dev:alpine
+    image: postgres-ssh-nas:alpine
     container_name: postgres-db
     build:
       context: ./  # Chemin vers le répertoire racine du projet
@@ -27,12 +27,12 @@ services:
         PATH_SCRIPT: ${path_script}       # le chemin d'accès aux scripts
     restart: unless-stopped
     ports:
-      - ${PG_PORT}        # Port externe Postgres
-      - ${SSH_SFTP_PORT}  # Port externe SSH
-    volumes: # Le conteneur possède les permissions lecutre et écriture sur les volumes.
-      - ./postgres_home/backups:/var/backups:rw                 # Fichier historique de sauvegarde
-      - ./postgres_home/data:/var/lib/postgresql/data:rw        # Dossier de persistance quand le conteneur à l'arrêt
-      - ./postgres_home/init:/docker-entrypoint-initdb.d:rw     # Script d'exécution au lancement
+      - ${PG_PORT}
+      - ${SSH_SFTP_PORT}
+    volumes:
+      - ./postgres_home/backups:/var/backups:rw               # fichier historique de sauvegarde
+      - ./postgres_home/data:/var/lib/postgresql/data:rw      # dossier de persistance quand le conteneur à l'arrêt
+      - ./postgres_home/init:/docker-entrypoint-initdb.d:rw   # Script d'exécution au lancement
     env_file:
       - .env
     environment:
@@ -48,10 +48,10 @@ services:
     image: quay.io/keycloak/keycloak:legacy
     restart: always
     ports:
-      - ${KEYCLOAK_PORT_HTTP_DEV}
+      - ${KEYCLOAK_PORT_HTTP_DEVOPS}
     volumes:
-      - ./keycloak_home/config:/config:rw         # Import config realm and user
-      - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog:rw  # import thèmes
+      - ./keycloak_home/config:/config                                           # import config realm and user
+      - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog  # import themes
     env_file:
       - .env
     environment:
@@ -62,19 +62,19 @@ services:
       DB_USER: ${PG_KC_USER}                      # Le nom du user base de données
       DB_PASSWORD: ${PG_KC_PASS}                  # Le mot de passe de l'utilisateur de la base de données
 
-      # Résolution du nom d'host interne de keycloak dans Docker
+      # Résolution du nom d'host interne de keycloak dans docker
       # Permet l'accès par le nom de domain (interne au conteneur)
-      KEYCLOAK_HOSTNAME: ${HOSTNAME_LOCALHOST}    # Sur le serveur Nas synology
-      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_DEV}     # définit le port host interne
+      KEYCLOAK_HOSTNAME: ${HOSTNAME_DEVOPS}       # Sur le serveur cible
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_DEVOPS}     # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
-
-      # Si la base de données est déjà créé, as besoin d'utilisé les paramètres ci-dessous
-      # Ces paramètres sont pour 1ʳᵉ création de la base de données keycloak UNIQUEMENT
+      
+      # Si la base de données est déjà créer , as besoin d'utilisé les paramétre ci-dessous 
+      # Ces paramétre sont pour 1er création de la base de données keycloak UNIQUEMENT 
       #KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
       #KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
-      KEYCLOAK_IMPORT: /config/realm-export.json   # localisation des domaines à importer
+      KEYCLOAK_IMPORT: /config/realm-export.json  # localisation des domaines a importer
 
-      PROXY_ADDRESS_FORWARDING: "true"            # autorisé les redirections (NGINX)
+      PROXY_ADDRESS_FORWARDING: "true"            # autorisé les redirection ( NGINX )
       JAVA_OPTS: "-Xms1024m -Xmx2048m"            # configuration de la mémoire de keycloak
     networks:
       - keycloak_postgre
