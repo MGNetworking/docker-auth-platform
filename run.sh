@@ -10,7 +10,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-env=("dev" "pre" "prod" "nas")
+env=("dev" "pre" "prod" "nas" "devops")
 echo "Lancement du programme, valeur d'entrée utilisateur : $1"
 echo "Choisissez l'environnement de deployment :"
 
