@@ -40,16 +40,27 @@ Ce fichier est le script de lancement du projet.
 Le script permettra de créer les volumes `keycloak_home` et `postgres_home` avec les droits utilisateurs
 a la création des services conteneurs.
 
-1. **Le Script de lancement `run.sh`**  
+1. **Le Script de lancement `run.sh` et `run-version.sh`**  
    Ce script proposera une liste d'environnement. Ces environnements sont en relation avec les ``docker-compose``
    présent dans le projet.
-   Dans 1er temps le `docker compose` lancera la construction des images contenue dans les `dockerfiles` cible.
-   Puis, Le `docker compose` lancera la construction des conteneurs `postrges-db` et `keycloak`.
+   Dans 1er temps le `docker-compose` lancera la construction des images contenue dans les `dockerfiles` cible.
+   Puis, Le `docker-compose` lancera la construction des conteneurs `postrges-db` et `keycloak`.
    La construction de ces images a un ordre de priorité. l'ordre de priorité prévu que le conteneur `postrges-db` puis
    se déployer avant `keycloak`.
    Dans les faits, le 2 conteneur son lancer, mais `keycloak` a besoin de localisé le serveur de base de données
    ce qui pour effet de coupé le deployment de `keycloak` pour que `postrges-db` puisse prendre le relay est déployé
    la base de données nécessaire keycloak.
+
+Le script `run.sh` permet de lancer le docker compose pour les versions qui utilise le `-`
+dans la syntaxe `docker-compose` il est prévu pour fonctionner sur :
+
+* dev
+* devops
+* pre
+* prod
+
+Le script `run-version.sh` permet de lancer le docker compose pour les versions qui n'utilise pas le `-`
+dans la syntaxe `docker compose` il est prévu pour fonctionner sur Nas Synology.
 
 En résumer le ``docker compose`` sera exécuter via le script `run.sh` prévu a cet effet, puis construira les images
 dans le dockerfile et construira avec un ordre de priorité les conteneurs `postrges-db` et `keycloak`
@@ -248,8 +259,6 @@ RUN chown maxime:maxime /home/maxime -R
 
 On crée les repertoires d'accueil ``/script`` et `/logs` puis on change le propriétaire de manière récursive du
 repertoire ``/home/maxime``.
-
-
 
 ## Les Scripts de sauvegarde
 
