@@ -49,7 +49,7 @@ if $trouver; then
     sudo chmod -R 0777 postgres_home/init/
 
     # Cela lancera le processus de construction de l'image sans utiliser le cache
-    docker-compose -f docker-compose-"$selection".yml --build --no-cache
+    docker-compose -f docker-compose-"$selection".yml build --no-cache
     # lancer les conteneurs en mode détaché après la construction
     docker-compose -f docker-compose-"$selection".yml up -d
     # affiche les logs
