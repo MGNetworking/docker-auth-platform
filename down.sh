@@ -10,7 +10,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-env=("dev" "pre" "prod" "nas")
+env=("dev" "pre" "prod" "devops" )
 echo "Voici la liste des conteneurs postgres-db ou keycloak en cours d'exécution"
 docker ps | grep "postgres-db\|keycloak"
 
@@ -34,8 +34,8 @@ fi
 
 if $trouver; then
     echo "*****************************"
-    echo "Stope et Supprime les conteneurs postgres-db et keycloak"
-    docker-compose -f docker-compose-"$selection".yml down
+    echo "Stop et Supprime les conteneurs postgres-db et keycloak"
+    docker compose -f docker-compose-"$selection".yml down
 
 else
    echo "Votre choix de sélection n'est pas présent dans la liste"

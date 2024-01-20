@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Ce programme permet de supprimer le conteneur en relation avec
-# l'environnement sélectionner et réinitialise les répertoires
+# Ce programme permet de supprimer le conteneur en cours d'exécution via
+# l'environnement sélectionner.
 
 # Vérifie si le script est exécuté avec sudo
 if [ "$EUID" -ne 0 ]; then
@@ -10,7 +10,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-env=("dev" "pre" "prod" "nas")
+env=("nas")
 echo "Voici la liste des conteneurs postgres-db ou keycloak en cours d'exécution"
 docker ps | grep "postgres-db\|keycloak"
 
@@ -34,21 +34,8 @@ fi
 
 if $trouver; then
     echo "*****************************"
-    echo "Stope et Supprime les conteneurs postgres-db et keycloak"
+    echo "Stop et Supprime les conteneurs postgres-db et keycloak"
     docker-compose -f docker-compose-"$selection".yml down
-
-    echo "*****************************"
-    echo "Supression de l'images postgres-ssh-dev "
-    docker rmi "postgres-ssh-dev:alpine"
-
-    echo "La liste des images Postgres et keycloak après supression"
-    docker images | grep "postgres\|keycloak"
-
-    echo "*****************************"
-    echo "Réinitiliasation des repertoires associer au volumes"
-    sudo rm -R postgres_home/backups/
-    sudo rm -R postgres_home/data/
-    sudo chown maxime:maxime postgres_home/ -R
 
 else
    echo "Votre choix de sélection n'est pas présent dans la liste"
