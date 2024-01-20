@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script permet la modification de repertoire interne au conteneur déployer
-# Il est nécèssaire à la création de dossier historique de sauvegarde
+# Il est nécessaire à la création de dossier historique de sauvegarde
 # des bases schema de base de données.
 
 echo "Modification des droits d'accès ..."
