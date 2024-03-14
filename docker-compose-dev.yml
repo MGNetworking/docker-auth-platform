@@ -13,7 +13,7 @@ services:
   # Configuration de postgres
   postgres:
     image: postgres-ssh-dev:alpine
-    container_name: postgres-db
+    container_name: postgres-kc
     build:
       context: ./  # Chemin vers le répertoire racine du projet
       dockerfile: Dockerfile
@@ -48,7 +48,7 @@ services:
     image: quay.io/keycloak/keycloak:legacy
     restart: always
     ports:
-      - ${KEYCLOAK_PORT_HTTP_DEV}
+      - ${KEYCLOAK_PORT_HTTP}
     volumes:
       - ./keycloak_home/config:/config:rw         # Import config realm and user
       - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog:rw  # import thèmes
@@ -64,8 +64,8 @@ services:
 
       # Résolution du nom d'host interne de keycloak dans Docker
       # Permet l'accès par le nom de domain (interne au conteneur)
-      KEYCLOAK_HOSTNAME: ${HOSTNAME_LOCALHOST}    # Sur le serveur Nas synology
-      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_DEV}     # définit le port host interne
+      KEYCLOAK_HOSTNAME: ${HOSTNAME_LOCALHOST_DEV}    # Sur le serveur Nas synology
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}     # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
 
       # Si la base de données est déjà créé, as besoin d'utilisé les paramètres ci-dessous

@@ -48,7 +48,7 @@ services:
     image: quay.io/keycloak/keycloak:legacy
     restart: always
     ports:
-      - ${KEYCLOAK_PORT_HTTP_DEVOPS}
+      - ${KEYCLOAK_PORT_HTTP}
     volumes:
       - ./keycloak_home/config:/config                                           # import config realm and user
       - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog  # import themes
@@ -65,7 +65,7 @@ services:
       # Résolution du nom d'host interne de keycloak dans docker
       # Permet l'accès par le nom de domain (interne au conteneur)
       KEYCLOAK_HOSTNAME: ${HOSTNAME_DEVOPS}       # Sur le serveur cible
-      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE_DEVOPS}     # définit le port host interne
+      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}         # définit le port host interne
       KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
       
       # Si la base de données est déjà créer , as besoin d'utilisé les paramétre ci-dessous 
