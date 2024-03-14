@@ -5,8 +5,8 @@
 python/venv
 
 # Fichier postgres créer dès le 1er lancement
-/postgres_home/data/*
-/postgres_home/backups/*
+postgres_home/data/*
+postgres_home/backups/*
 
 # fichier de création de répertoir (Script python)
 /python/ghoverblog
