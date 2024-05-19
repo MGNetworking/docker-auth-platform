@@ -10,7 +10,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-env=("dev" "pre" "prod" "devops")
+env=("dev" "devops" "nas" "pre" "prod" )
 echo "Lancement du programme, valeur d'entrée utilisateur : $1"
 echo "Choisissez l'environnement de deployment :"
 
@@ -26,7 +26,7 @@ read choix
 trouver=false
 selection=""
 # recherche de l'environnement sélectionné
-if [ -n "${env[$choix]}" ]; then
+if [[ "$choix" -ge 0 && "$choix" -lt "${#env[@]}" ]]; then
   echo "Le programme va être lancé sous l'environnement suivant : ${env[$choix]}"
   selection=${env[$choix]}
   trouver=true
@@ -48,12 +48,15 @@ if $trouver; then
     sudo chmod -R 0777 postgres_home/backups/
     sudo chmod -R 0777 postgres_home/init/
 
-    # Cela lancera le processus de construction de l'image sans utiliser le cache
-    docker compose -f docker-compose-"$selection".yml build --no-cache
-    # lancer les conteneurs en mode détaché après la construction
-    docker compose -f docker-compose-"$selection".yml up -d
-    # affiche les logs
-    docker compose -f docker-compose-"$selection".yml logs -f
+    if [ "$selection" == "nas" ]; then
+        docker-compose -f docker-compose-"$selection".yml build --no-cache
+        docker-compose -f docker-compose-"$selection".yml up -d
+        docker-compose -f docker-compose-"$selection".yml logs -f
+    else
+      docker compose -f docker-compose-"$selection".yml build --no-cache
+      docker compose -f docker-compose-"$selection".yml up -d
+      docker compose -f docker-compose-"$selection".yml logs -f
+    fi
 
 else
     echo "Le paramètre de programmation n'a pas été trouvé."
