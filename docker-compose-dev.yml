@@ -1,85 +1,80 @@
-######################################################
-# Service de gestion de la sécurité
-# Keycloak coupler avec postgres
-# utilise le protocole (OAuth 2)
-######################################################
-version: '3.8'
-
-volumes:
-  postgres_home:
-    driver: local
+version: "3.8"
 
 services:
-  # Configuration de postgres
-  postgres:
-    image: postgres-ssh-dev:alpine
-    container_name: postgres-kc
-    build:
-      context: ./  # Chemin vers le répertoire racine du projet
-      dockerfile: Dockerfile
-      args:
-        PORT_SSH: ${port_ssh}             # Port interne SSH
-        PORT_POSTGRES: ${port_postgres}   # Port interne Postgres
-        MDP_USER: ${mdp_user}             # mdp acces SSH conteneur docker
-        ACCESS_USER: ${user_access}       # le nom du user acces docker
-        PATH_BACKUP: ${path_backup}       # le chemin interne du conteneur
-        PATH_LOGS: ${path_logs}           # le chemin d'accès aux logs
-        PATH_SCRIPT: ${path_script}       # le chemin d'accès aux scripts
-    restart: unless-stopped
-    ports:
-      - ${PG_PORT}        # Port externe Postgres
-      - ${SSH_SFTP_PORT}  # Port externe SSH
-    volumes: # Le conteneur possède les permissions lecutre et écriture sur les volumes.
-      - ./postgres_home/backups:/var/backups:rw                 # Fichier historique de sauvegarde
-      - ./postgres_home/data:/var/lib/postgresql/data:rw        # Dossier de persistance quand le conteneur à l'arrêt
-      - ./postgres_home/init:/docker-entrypoint-initdb.d:rw     # Script d'exécution au lancement
-    env_file:
-      - .env
-    environment:
-      POSTGRES_DB: postgres                # base de données créée au lancement
-      POSTGRES_USER: ${PG_KC_USER}         # Le User name de cette base de données
-      POSTGRES_PASSWORD: ${PG_KC_PASS}     # Le Password de cette base de données
-    networks: # déclare les noms de connexion réseaux
-      - keycloak_postgre
-
-  # configuration de Keycloak
   keycloak:
     container_name: keycloak
-    image: quay.io/keycloak/keycloak:legacy
+    image: quay.io/keycloak/keycloak:26.0
     restart: always
-    ports:
-      - ${KEYCLOAK_PORT_HTTP}
-    volumes:
-      - ./keycloak_home/config:/config:rw         # Import config realm and user
-      - ./keycloak_home/themes/ghoverblog:/opt/jboss/keycloak/themes/ghoverblog:rw  # import thèmes
-    env_file:
-      - .env
     environment:
-      DB_VENDOR: POSTGRES                         # Le type de fournisseur de base de données
-      DB_ADDR: postgres                           # Le nom d'hote de la base de données
-      DB_DATABASE: ${KEYCLOAK_DB}                 # Le nom de la base de données
-      DB_SCHEMA: ${KEYCLOAK_SCHEMA}               # le nom du schema dans la base de données
-      DB_USER: ${PG_KC_USER}                      # Le nom du user base de données
-      DB_PASSWORD: ${PG_KC_PASS}                  # Le mot de passe de l'utilisateur de la base de données
+      # Domain
+      KC_HOSTNAME: "${KEYCLOAK_FRONTEND_URL_DEV}" # spécifie une URL par défaut, mais elle n'est pas strictement appliquée.
+      KC_HOSTNAME_STRICT: false # Keycloak accepte les requêtes avec n'importe quel nom d'hôte
+      # permettent à Keycloak d'utiliser des cookies non sécurisés (non-HTTPS), ce qui est acceptable en local.
+      KC_COOKIE_SAME_SITE: None
+      KC_COOKIE_SECURE: false # Désactive HTTPS requis pour les cookies
 
-      # Résolution du nom d'host interne de keycloak dans Docker
-      # Permet l'accès par le nom de domain (interne au conteneur)
-      KEYCLOAK_HOSTNAME: ${HOSTNAME_LOCALHOST_DEV}    # Sur le serveur Nas synology
-      KEYCLOAK_HTTP_PORT: ${PORT_INTERNE}     # définit le port host interne
-      KEYCLOAK_LOGLEVEL: INFO                     # Les niveaux de journal pris en charge sont :ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
+      # Les log
+      KC_LOG_CONSOLE_LEVEL: info
+      KC_LOG_CONSOLE_COLOR: true
 
-      # Si la base de données est déjà créé, as besoin d'utilisé les paramètres ci-dessous
-      # Ces paramètres sont pour 1ʳᵉ création de la base de données keycloak UNIQUEMENT
-      #KEYCLOAK_USER: ${KEYCLOAK_USER}             # Le nom de l'utilisateur de keycloak
-      #KEYCLOAK_PASSWORD: ${KEYCLOAK_PASS}         # Le mot de passe de keycloak
-      KEYCLOAK_IMPORT: /config/realm-export.json   # localisation des domaines à importer
+      # Les métric
+      KC_HEALTH_ENABLED: true # Activer les endpoints de santé
+      KC_METRICS_ENABLED: true # Activer les métriques pour monitoring
 
-      PROXY_ADDRESS_FORWARDING: "true"            # autorisé les redirections (NGINX)
-      JAVA_OPTS: "-Xms1024m -Xmx2048m"            # configuration de la mémoire de keycloak
+      # Configuration de la base de données
+      KC_DB: postgres # le type de base de données
+      KC_DB_URL: jdbc:postgresql://postgres:5432/kc_db # Connexion à PostgreSQL
+      KC_DB_USERNAME: ${USER_BD}
+      KC_DB_PASSWORD: ${PSW_DB}
+
+      # Utilisateur temporaire d'administrateur
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN} # Initialisation de l'admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD} # Mot de passe de l'admin
+
+      # La JVM
+      JAVA_OPTS_APPEND: "-Dkeycloak.someOption=value -XX:MaxRAMPercentage=65"
+
+    volumes:
+      - ./script/wait-for-it.sh:/wait-for-it.sh
+    entrypoint: [
+      "./wait-for-it.sh",
+      "postgres-kc:5432", # DNS interne docker => hostname:port
+      "--",
+      "/opt/keycloak/bin/kc.sh",
+      "start-dev",
+    ]
+    ports:
+      - "8999:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - keycloak_postgre
-    depends_on:
-      - postgres
+
+  postgres:
+    container_name: postgres-kc
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: kc_db # Nom de la base de données
+      POSTGRES_USER: ${USER_BD} # Utilisateur principal
+      POSTGRES_PASSWORD: ${PSW_DB} # Mot de passe
+    ports:
+      - "5499:5432" # Port pour accéder à PostgreSQL depuis l'hôte
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:rw # Données persistantes
+      - ./postgres_home/backups:/var/backups:rw # Dossier de sauvegarde
+      - ./postgres_home/init:/docker-entrypoint-initdb.d:rw # Scripts d'initialisation
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_BD} -d kc_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - keycloak_postgre
+
+volumes:
+  postgres_data:
+    name: PG_DATA
 
 networks:
   keycloak_postgre:
