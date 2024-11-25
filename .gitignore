@@ -1,13 +1,2 @@
 # Fichier concernant l'IDE
 .idea/
-
-# Environnement python
-python/venv
-
-# Fichier postgres créer dès le 1er lancement
-postgres_home/data/*
-postgres_home/backups/*
-
-# fichier de création de répertoir (Script python)
-/python/ghoverblog
-/python/kc_db
