@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "suppression des conteneurs"
-docker-compose -f docker-compose-dev.yml down
+docker-compose -f docker-compose-dev.yml down  -v
 
 
 echo "la liste des volumes"
