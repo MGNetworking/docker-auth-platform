@@ -8,10 +8,11 @@ services:
       # Domain
       KC_HOSTNAME: "${HOSTNAME_PROD}" # doit correspondre à l'URL externe réelle utilisée en production.
       KC_SPI_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL_PROD}" # URL externe
+      KC_PROXY_TRUSTED_ADDRESSES: "192.168.1.56,127.0.0.1"
+      KC_PROXY_HEADERS: "xforwarded"  # Accepte les en-têtes X-Forwarded-* de NGINX
       KC_HOSTNAME_STRICT: true # Keycloak vérifie que toutes les requêtes entrantes utilisent le nom d'hôte défini explicitement
       KC_COOKIE_SAME_SITE: None
       KC_COOKIE_SECURE: true # impose HTTPS pour tous les cookies, essentiel en production
-      KC_PROXY: edge # Signale que Keycloak est derrière un proxy
 
       # Les log
       KC_LOG_CONSOLE_LEVEL: info
@@ -23,7 +24,7 @@ services:
 
       # Base de données
       KC_DB: postgres # le type de base de données
-      KC_DB_URL: jdbc:postgresql://postgres:5432/kc_db # Connexion à PostgreSQL
+      KC_DB_URL: jdbc:postgresql://postgres:${PORT_BD}/kc_db # Connexion à PostgreSQL
       KC_DB_USERNAME: ${USER_BD}
       KC_DB_PASSWORD: ${PSW_DB}
 
@@ -59,7 +60,7 @@ services:
       POSTGRES_USER: ${USER_BD} # Utilisateur principal
       POSTGRES_PASSWORD: ${PSW_DB} # Mot de passe
     ports:
-      - "5499:5432" # Port pour accéder à PostgreSQL depuis l'hôte
+      - "5400:5432" # Port pour accéder à PostgreSQL depuis l'hôte
     volumes:
       - postgres_data:/var/lib/postgresql/data:rw # Données persistantes
       - ./postgres_home/backups:/var/backups:rw # Dossier de sauvegarde
