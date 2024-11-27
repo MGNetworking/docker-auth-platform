@@ -5,26 +5,23 @@ services:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:26.0
     environment:
-      # Domain
-      KC_HOSTNAME: "${HOSTNAME_PROD}" # doit correspondre à l'URL externe réelle utilisée en production.
-      KC_SPI_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL_PROD}" # URL externe
-      KC_PROXY_TRUSTED_ADDRESSES: "192.168.1.56,127.0.0.1"
+      # Configuration Keycloak
+      KC_HOSTNAME: "${HOSTNAME_PROD}"
+      KC_SPI_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL_PROD}"  # URL publique sans port
       KC_PROXY_HEADERS: "xforwarded"  # Accepte les en-têtes X-Forwarded-* de NGINX
-      KC_HOSTNAME_STRICT: true # Keycloak vérifie que toutes les requêtes entrantes utilisent le nom d'hôte défini explicitement
-      KC_COOKIE_SAME_SITE: None
-      KC_COOKIE_SECURE: true # impose HTTPS pour tous les cookies, essentiel en production
+      KC_HOSTNAME_STRICT: true
+      KC_HOSTNAME_STRICT_HTTPS: false  # Désactiver HTTPS obligatoire
+      KC_COOKIE_SECURE: true          # Désactiver les cookies sécurisés
+      KC_PROXY: edge                   # Indique que Keycloak est derrière un proxy
 
       # Les log
       KC_LOG_CONSOLE_LEVEL: info
-      KC_LOG_CONSOLE_COLOR: true
-
-      # Les métric
       KC_HEALTH_ENABLED: true # Activer les endpoints de santé
       KC_METRICS_ENABLED: true # Activer les métriques pour monitoring
 
       # Base de données
       KC_DB: postgres # le type de base de données
-      KC_DB_URL: jdbc:postgresql://postgres:${PORT_BD}/kc_db # Connexion à PostgreSQL
+      KC_DB_URL: jdbc:postgresql://postgres:5432/kc_db # Connexion à PostgreSQL via DNS interne docker
       KC_DB_USERNAME: ${USER_BD}
       KC_DB_PASSWORD: ${PSW_DB}
 
@@ -33,7 +30,7 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD} # Mot de passe de l'admin
 
       # La JVM
-      JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production"
+      JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"
     volumes:
       - ./script/wait-for-it.sh:/wait-for-it.sh
     entrypoint:
@@ -60,7 +57,7 @@ services:
       POSTGRES_USER: ${USER_BD} # Utilisateur principal
       POSTGRES_PASSWORD: ${PSW_DB} # Mot de passe
     ports:
-      - "5400:5432" # Port pour accéder à PostgreSQL depuis l'hôte
+      - "${PORT_BD}:5432" # Port pour accéder à PostgreSQL depuis l'hôte
     volumes:
       - postgres_data:/var/lib/postgresql/data:rw # Données persistantes
       - ./postgres_home/backups:/var/backups:rw # Dossier de sauvegarde
