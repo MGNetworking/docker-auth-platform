@@ -14,7 +14,7 @@ services:
       KC_COOKIE_SECURE: true          # Désactiver les cookies sécurisés
       KC_PROXY: edge                   # Indique que Keycloak est derrière un proxy
 
-      # Les log
+      # Les logs
       KC_LOG_CONSOLE_LEVEL: info
       KC_HEALTH_ENABLED: true # Activer les endpoints de santé
       KC_METRICS_ENABLED: true # Activer les métriques pour monitoring
@@ -63,7 +63,7 @@ services:
       - ./postgres_home/backups:/var/backups:rw # Dossier de sauvegarde
       - ./postgres_home/init:/docker-entrypoint-initdb.d:rw # Scripts d'initialisation
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${USER_BD} -d kc_db"]
+      test: [ "CMD-SHELL", "pg_isready -U ${USER_BD} -d kc_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
