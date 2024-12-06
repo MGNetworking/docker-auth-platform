@@ -13,7 +13,7 @@ services:
       KC_COOKIE_SAME_SITE: None
       KC_COOKIE_SECURE: false # Désactive HTTPS requis pour les cookies
 
-      # Les log
+      # Les logs
       KC_LOG_CONSOLE_LEVEL: info
       KC_LOG_CONSOLE_COLOR: true
 
