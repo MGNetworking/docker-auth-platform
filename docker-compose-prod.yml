@@ -52,6 +52,7 @@ services:
   postgres:
     container_name: postgres-kc
     image: postgres:17-alpine
+    restart: always
     environment:
       POSTGRES_DB: kc_db # Nom de la base de données
       POSTGRES_USER: ${USER_BD} # Utilisateur principal
