@@ -6,6 +6,7 @@
 * [Scripts de Gestion](#scripts-de-gestion)
     * [Les Scripts Run / Down](#les-scripts-run--down)
     * [Script wait-for-it.sh](#script-wait-for-itsh)
+    * [En cas de problème d'accès](#)
 * [Backup postgreSQL](#backup-postgresql)
 * [Gestion des realm role / user dans Keycloak](#gestion-des-realm-role--user-dans-keycloak)
 * [Configuration des variables](#configuration-des-variables)
@@ -87,6 +88,29 @@ Télécharger le Script wait-for-it.sh :
 curl -o wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
 chmod +x wait-for-it.sh
 ```
+
+---
+
+## En cas de problème d'accès
+
+Si vous perdez à nouveau l'accès à votre compte administrateur Keycloak, vous pouvez le recréer facilement en utilisant
+cette commande depuis le terminal du conteneur :
+
+````shell
+# Ce connecter au conteneur
+ docker exec -ti  keycloak bash
+````
+
+````shell
+# La commande de réinitialisation
+/opt/keycloak/bin/kc.sh bootstrap-admin user
+````
+
+Cette commande vous demandera de saisir un nom d'utilisateur et un mot de passe, puis créera un utilisateur
+administrateur temporaire avec les privilèges complets dans le realm master.
+
+C'est la méthode officielle et la plus sûre pour récupérer l'accès administrateur, beaucoup plus propre que de manipuler
+directement la base de données.
 
 ---
 
