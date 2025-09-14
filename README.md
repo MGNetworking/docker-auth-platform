@@ -6,7 +6,7 @@
 * [Scripts de Gestion](#scripts-de-gestion)
     * [Les Scripts Run / Down](#les-scripts-run--down)
     * [Script wait-for-it.sh](#script-wait-for-itsh)
-    * [En cas de problème d'accès](#)
+    * [En cas de problème d'accès](#en-cas-de-problème-daccès)
 * [Backup postgreSQL](#backup-postgresql)
 * [Gestion des realm role / user dans Keycloak](#gestion-des-realm-role--user-dans-keycloak)
 * [Configuration des variables](#configuration-des-variables)
@@ -93,6 +93,8 @@ chmod +x wait-for-it.sh
 
 ## En cas de problème d'accès
 
+Au démarrage le mot de passe et le nom d'utilisateur est: ``admin``
+
 Si vous perdez à nouveau l'accès à votre compte administrateur Keycloak, vous pouvez le recréer facilement en utilisant
 cette commande depuis le terminal du conteneur :
 
@@ -135,6 +137,24 @@ Commande pour keycloak en version supérieure à 17
 ```shell
 /opt/keycloak/bin/kc.sh export --realm=ghoverblog --file=/opt/keycloak/data/import/ghoverblog-realm.json --users=same_file
 ```
+
+Depuis docker
+Export des realm est les utilisateurs dans le même fichier.
+
+````shell
+# commande d'export
+docker exec -it keycloak /opt/keycloak/bin/kc.sh export --realm=ghoverblog --file=/opt/keycloak/data/ghoverblog-realm.json --users=same_file
+
+# copier du fichier dans le conteneur vers l'extérieur
+docker cp keycloak:/opt/keycloak/data/ghoverblog-realm.json ./ghoverblog-realm.json
+````
+
+Les fichiers seront copier depuis le dossier ou la commande à était lancé
+
+Cette commande créera 2 fichiers :
+
+* `ghoverblog-realm.json`
+* `ghoverblog-users-0.json`
 
 Faire un depuis un keycloak en version inférieur à 17
 
