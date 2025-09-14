@@ -5,7 +5,7 @@ services:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:26.0
     environment:
-      KC_HOSTNAME: "${KEYCLOAK_FRONTEND_URL_DEV}"
+      KC_HOSTNAME: "${KEYCLOAK_FRONTEND_URL}"
       KC_HOSTNAME_STRICT: "false"
       KC_COOKIE_SAME_SITE: None
       KC_COOKIE_SECURE: "false"
@@ -14,14 +14,14 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-shared:5432/kc_db
+      KC_DB_URL: jdbc:postgresql://postgres-shared:5432/${DB_NAME}
       KC_DB_USERNAME: ${USER_BD}
       KC_DB_PASSWORD: ${PSW_DB}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       JAVA_OPTS_APPEND: "-Dkeycloak.someOption=value -XX:MaxRAMPercentage=65"
     volumes:
-      - ./script/wait-for-it.sh:/wait-for-it.sh
+      - ../../script/wait-for-it.sh:/wait-for-it.sh
       - keycloak_data:/opt/keycloak/data # Données persistantes
     entrypoint: [
       "./wait-for-it.sh",
@@ -31,7 +31,7 @@ services:
       "start-dev",
     ]
     ports:
-      - "8999:8080"
+      - "${KEYCLOAK_PORT}:8080"
     deploy:
       replicas: 1
       restart_policy:
