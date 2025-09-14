@@ -33,6 +33,7 @@ services:
       JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"
     volumes:
       - ./script/wait-for-it.sh:/wait-for-it.sh
+      - keycloak_data:/opt/keycloak/data # Données persistantes
     entrypoint:
       [
         "./wait-for-it.sh",
@@ -74,6 +75,8 @@ services:
 volumes:
   postgres_data:
     name: PG_DATA
+  keycloak_data:
+    name: KEYCLOAK_DATA
 
 networks:
   keycloak_postgre:
