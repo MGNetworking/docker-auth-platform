@@ -8,7 +8,9 @@ echo "Déploiement de l'infrastructure de développement"
 
 # Variables
 NETWORK_SCRIPT="./script/create-network.sh"
-ENV_FILE=".env"
+ENV_DIR="environments/dev"
+ENV_FILE="${ENV_DIR}/.env"
+
 
 # Vérifier que le fichier .env existe
 if [ ! -f "$ENV_FILE" ]; then
@@ -49,10 +51,10 @@ echo ""
 
 # Étape 2 : Déployer PostgreSQL
 echo "Étape 2/3 : Déploiement de PostgreSQL"
-if [ -f "postgresql-swarm.yml" ]; then
+if [ -f "${ENV_DIR}/postgresql-swarm.yml" ]; then
 
     # Cette commande HÉRITE des variables du shell parent
-    docker stack deploy -c postgresql-swarm.yml $PG_STACK_NAME
+    docker stack deploy -c ${ENV_DIR}/postgresql-swarm.yml $PG_STACK_NAME
 
     echo "Attente du démarrage de PostgreSQL..."
     sleep 10
@@ -80,17 +82,17 @@ echo ""
 
 # Étape 3 : Déployer Keycloak
 echo "Étape 3/3 : Déploiement de Keycloak"
-if [ -f "keycloak-swarm.yml" ]; then
+if [ -f "${ENV_DIR}/keycloak-swarm.yml" ]; then
 
     # Cette commande HÉRITE des variables du shell parent
-    docker stack deploy -c keycloak-swarm.yml $KC_STACK_NAME
+    docker stack deploy -c ${ENV_DIR}/keycloak-swarm.yml $KC_STACK_NAME
 
     echo "Attente du démarrage de Keycloak..."
     sleep 15
 
     # Vérifier que Keycloak est prêt
     timeout 120s bash -c '
-        until curl -f http://localhost:8999/health >/dev/null 2>&1; do
+        until curl -f http://localhost:8999/realms/master >/dev/null 2>&1; do
             echo "   Keycloak en cours de démarrage..."
             sleep 10
         done
