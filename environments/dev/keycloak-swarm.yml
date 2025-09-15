@@ -6,6 +6,7 @@ services:
     image: quay.io/keycloak/keycloak:26.0
     environment:
       KC_HOSTNAME: "${KEYCLOAK_FRONTEND_URL}"
+      KC_HTTP_HOST: "0.0.0.0"
       KC_HOSTNAME_STRICT: "false"
       KC_COOKIE_SAME_SITE: None
       KC_COOKIE_SECURE: "false"
@@ -14,7 +15,7 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-shared:5432/${DB_NAME}
+      KC_DB_URL: jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}
       KC_DB_USERNAME: ${USER_BD}
       KC_DB_PASSWORD: ${PSW_DB}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
@@ -25,17 +26,18 @@ services:
       - keycloak_data:/opt/keycloak/data # Données persistantes
     entrypoint: [
       "./wait-for-it.sh",
-      "postgres-shared:5432", # DNS interne docker => hostname:port
+      "postgres-stack_postgres-shared:5432",
+      "--timeout=15",
       "--",
       "/opt/keycloak/bin/kc.sh",
-      "start-dev",
+      "start-dev"
     ]
     ports:
       - "${KEYCLOAK_PORT}:8080"
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 30s
         max_attempts: 5
     networks:
