@@ -27,6 +27,9 @@ pipeline {
                         sh '''
                             echo "=== PRÉPARATION DU PACKAGE ==="
                             
+                            echo "DEBUG: NAS_SERVER = ${NAS_SERVER}"
+                            echo "DEBUG: IP_NAS = ${IP_NAS}"
+                            
                             # Créer le package avec tous les fichiers
                             mkdir -p node/environments/nas
                             mkdir -p node/infrastructure
