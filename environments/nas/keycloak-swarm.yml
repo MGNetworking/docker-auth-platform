@@ -7,14 +7,13 @@ services:
     environment:
       # Configuration hostname
       KC_HOSTNAME: "${HOSTNAME_PROD}"
-      KC_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL}"  # Changé de KC_SPI_HOSTNAME_URL
-      KC_HOSTNAME_ADMIN_URL: "${KEYCLOAK_FRONTEND_URL}"  # Ajouté pour admin
+      KC_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL}"
       KC_PROXY_HEADERS: "xforwarded"
       KC_HOSTNAME_STRICT: "false"  # temporairement pour debug
       KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_COOKIE_SECURE: "false"    # temporairement pour debug
+      KC_COOKIE_SECURE: "true"    # Remettez true
       KC_PROXY: "edge"
-      KC_LOG_CONSOLE_LEVEL: "DEBUG"  # plus de détails
+      KC_LOG_CONSOLE_LEVEL: info
       KC_LOG_CONSOLE_COLOR: "false"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
