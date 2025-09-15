@@ -170,7 +170,7 @@ else
     echo "Stack Keycloak déjà déployée"
 
     # Vérifier qu'elle fonctionne toujours
-    if curl -f "http://localhost:${KEYCLOAK_PORT}/health" >/dev/null 2>&1; then
+    if curl -f "http://localhost:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
         echo "Keycloak existant et opérationnel"
     else
         echo "Keycloak existant mais non accessible"
