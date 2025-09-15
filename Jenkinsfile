@@ -27,9 +27,6 @@ pipeline {
                         sh '''
                             echo "=== PRÉPARATION DU PACKAGE ==="
                             
-                            echo "DEBUG: NAS_SERVER = ${NAS_SERVER}"
-                            echo "DEBUG: IP_NAS = ${IP_NAS}"
-                            
                             # Créer le package avec tous les fichiers
                             mkdir -p node/environments/nas
                             mkdir -p node/infrastructure
@@ -50,7 +47,7 @@ pipeline {
                             echo "=== CRÉATION INFRASTRUCTURE SUR LE NAS ==="
                             
                             # Créer la structure sur le NAS
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY maxime@${NAS_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY maxime@${NAS_SERVER} -p99"
                                 mkdir -p /volume1/docker/keycloak-infrastructure
                             "
                             
