@@ -115,8 +115,7 @@ pipeline {
                 script {
                     withCredentials([sshUserPrivateKey(
                             credentialsId: 'NAS_KEY',
-                            keyFileVariable: 'SSH_KEY',
-                            usernameVariable: 'SSH_USER'
+                            keyFileVariable: 'SSH_KEY'
                     )]) {
                         sh '''
                             echo "=== VÉRIFICATION DES SERVICES DOCKER ==="
