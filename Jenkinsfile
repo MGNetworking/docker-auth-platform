@@ -49,6 +49,10 @@ pipeline {
                             # Créer la structure sur le NAS
                             ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p 99 maxime@${NAS_SERVER} "
                                 mkdir -p /volume1/docker/keycloak-infrastructure
+                                mkdir -p /volume1/docker/keycloak-infrastructure/environments/nas
+                                mkdir -p /volume1/docker/keycloak-infrastructure/infrastructure
+                                mkdir -p /volume1/docker/keycloak-infrastructure/scripts
+                                mkdir -p /volume1/docker/keycloak-infrastructure/postgres_home
                             "
                             
                             # Transférer tous les fichiers
