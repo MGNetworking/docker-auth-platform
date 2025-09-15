@@ -23,7 +23,6 @@ pipeline {
                     withCredentials([sshUserPrivateKey(
                             credentialsId: 'NAS_KEY',
                             keyFileVariable: 'SSH_KEY',
-                            usernameVariable: 'SSH_USER'
                     )]) {
                         sh '''
                             echo "=== PRÉPARATION DU PACKAGE ==="
@@ -48,18 +47,18 @@ pipeline {
                             echo "=== CRÉATION INFRASTRUCTURE SUR LE NAS ==="
                             
                             # Créer la structure sur le NAS
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY maxime@${NAS_SERVER} "
                                 mkdir -p /volume1/docker/keycloak-infrastructure
                             "
                             
                             # Transférer tous les fichiers
                             scp -o StrictHostKeyChecking=no -i $SSH_KEY -r node/* \
-                                $SSH_USER@${NAS_SERVER}:/volume1/docker/keycloak-infrastructure/
+                                maxime@${NAS_SERVER}:/volume1/docker/keycloak-infrastructure/
                             
                             echo "=== VÉRIFICATION INFRASTRUCTURE ==="
                             
                             # Vérifier que l'infrastructure est créée
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY maxime@${NAS_SERVER} "
                                 echo 'Infrastructure créée:'
                                 ls -la /volume1/docker/keycloak-infrastructure/
                                 echo 'Scripts disponibles:'
@@ -90,7 +89,7 @@ pipeline {
                             echo "=== LANCEMENT DU DÉPLOIEMENT ==="
                             
                             # Exécuter le script de déploiement Docker
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} \
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY maxime@${NAS_SERVER} \
                                 "cd /volume1/docker/keycloak-infrastructure && ./infrastructure/deploy-infra.sh"
                             
                             DEPLOY_STATUS=$?
@@ -123,7 +122,7 @@ pipeline {
                         sh '''
                             echo "=== VÉRIFICATION DES SERVICES DOCKER ==="
                             
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY maxime@${NAS_SERVER} "
                                 echo '--- Stacks déployées ---'
                                 docker stack ls
                                 
