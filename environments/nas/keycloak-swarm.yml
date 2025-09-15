@@ -5,23 +5,29 @@ services:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:26.0
     environment:
+      # Configuration hostname
       KC_HOSTNAME: "${HOSTNAME_PROD}"
-      KC_SPI_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL}"
+      KC_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL}"  # Changé de KC_SPI_HOSTNAME_URL
+      KC_HOSTNAME_ADMIN_URL: "${KEYCLOAK_FRONTEND_URL}"  # Ajouté pour admin
       KC_PROXY_HEADERS: "xforwarded"
-      KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME_STRICT: "false"  # temporairement pour debug
       KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_COOKIE_SECURE: "true"
+      KC_COOKIE_SECURE: "false"    # temporairement pour debug
       KC_PROXY: "edge"
-      KC_LOG_CONSOLE_LEVEL: info
+      KC_LOG_CONSOLE_LEVEL: "DEBUG"  # plus de détails
       KC_LOG_CONSOLE_COLOR: "false"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
+
+      # Configuration base de données
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}
       KC_DB_USERNAME: ${USER_BD}
       KC_DB_PASSWORD: ${PSW_DB}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+
+      # Configuration JVM
       JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"
     volumes:
       - ../../scripts/wait-for-it.sh:/wait-for-it.sh
