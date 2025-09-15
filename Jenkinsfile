@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Credentials pour le serveur NAS
         NAS_KEY = credentials('NAS_KEY')
-        NAS_SERVER = "${IP_NAS}"  // Référence secret Jenkins
+        NAS_SERVER = credentials('IP_NAS') // Référence secret Jenkins
 
         // Variables pour traçabilité
         GIT_TAG = sh(script: "git describe --tags --always", returnStdout: true).trim()
