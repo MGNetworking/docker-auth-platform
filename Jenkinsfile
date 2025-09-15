@@ -52,7 +52,7 @@ pipeline {
                             "
                             
                             # Transférer tous les fichiers
-                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -P 99 -r node/* \
+                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -P 88 -r node/* \
                                 maxime@${NAS_SERVER}:/volume1/docker/keycloak-infrastructure/
                             
                             echo "=== VÉRIFICATION INFRASTRUCTURE ==="
