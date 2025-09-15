@@ -3,10 +3,16 @@
 * [Technologies utilisées](#technologies-utilisées)
     * [Keycloak](#keycloak)
     * [PostgreSQL](#postgresql)
+    * [Docker Swarm](#docker-swarm)
 * [Scripts de Gestion](#scripts-de-gestion)
-    * [Les Scripts Run / Down](#les-scripts-run--down)
+    * [Les Scripts de Déploiement](#les-scripts-de-déploiement)
+    * [Scripts d'Infrastructure](#scripts-dinfrastructure)
     * [Script wait-for-it.sh](#script-wait-for-itsh)
     * [En cas de problème d'accès](#en-cas-de-problème-daccès)
+* [Environnements](#environnements)
+    * [Environnement de Développement](#environnement-de-développement)
+    * [Environnement NAS/Production](#environnement-nasproduction)
+* [Pipeline CI/CD](#pipeline-cicd)
 * [Backup postgreSQL](#backup-postgresql)
 * [Gestion des realm role / user dans Keycloak](#gestion-des-realm-role--user-dans-keycloak)
 * [Configuration des variables](#configuration-des-variables)
@@ -23,7 +29,7 @@
 * [Information](#information)
 
 Ce projet met en œuvre une solution de gestion des utilisateurs et des autorisations en utilisant **Keycloak**
-conjointement avec **PostgreSQL**. Il s'agit d'une implémentation simple et efficace pour gérer l'authentification et
+conjointement avec **PostgreSQL**. Il s'agit d'une implémentation déployée via **Docker Swarm** pour gérer l'authentification et
 l'autorisation dans vos applications, en s'appuyant sur les standards **OpenID Connect** et **OAuth2**.
 
 ## Technologies utilisées
@@ -49,32 +55,48 @@ manière fiable les informations essentielles, telles que :
 
 L'utilisation de PostgreSQL garantit une haute performance et une persistance fiable des données pour Keycloak.
 
+### Docker Swarm
+
+**Docker Swarm** est utilisé pour l'orchestration des conteneurs, permettant :
+
+- Le déploiement en haute disponibilité
+- La gestion automatique des services
+- La scalabilité horizontale
+- La gestion des réseaux overlay pour la communication inter-services
+
 ---
 
 ## Scripts de Gestion
 
-Le projet fournit deux scripts simples pour gérer les containers Docker de Keycloak et PostgreSQL. Ces scripts
-permettent de démarrer, arrêter et supprimer les volumes associés.
+Le projet fournit plusieurs scripts pour gérer le déploiement de l'infrastructure Keycloak et PostgreSQL via Docker Swarm.
 
-### Les Scripts Run / Down
+### Les Scripts de Déploiement
 
-Ce script démarre l'infrastructure. Il initialise les containers Keycloak et PostgreSQL et s'assure que tout est prêt
-pour une utilisation immédiate.
+Ces scripts permettent de gérer les environnements de développement et de production.
 
-#### Commande :
-
-Linux ou wsl
+#### Commandes pour l'environnement de développement :
 
 ```shell
-./script/run.sh
-./script/down.sh
+# Créer le réseau overlay nécessaire
+./script/create-network.sh
+
+# Déployer l'environnement de développement
+./script/deploy-dev.sh
+
+# Arrêter l'environnement de développement (sans supprimer les volumes)
+./script/stop-dev.sh
 ```
 
-powershell
+### Scripts d'Infrastructure
 
-```powershell
-./script/run.bat
-./script/down.bat
+Ces scripts sont utilisés pour le déploiement sur le serveur NAS via Jenkins.
+
+```shell
+# Vérifier que l'infrastructure est complète et opérationnelle
+./infrastructure/check-infra.sh
+
+# Déployer l'infrastructure sur le serveur NAS
+./infrastructure/deploy-nas.sh
 ```
 
 ### Script wait-for-it.sh
@@ -91,6 +113,39 @@ chmod +x wait-for-it.sh
 
 ---
 
+## Environnements
+
+Le projet est organisé avec des environnements séparés pour le développement et la production.
+
+### Environnement de Développement
+
+L'environnement de développement se trouve dans `environments/dev/` et contient :
+
+- `.env` : Fichier de configuration des variables d'environnement pour le développement
+- `keycloak-swarm.yml` : Configuration Docker Swarm pour Keycloak en développement
+- `postgresql-swarm.yml` : Configuration Docker Swarm pour PostgreSQL en développement
+
+### Environnement NAS/Production
+
+L'environnement de production se trouve dans `environments/nas/` et contient :
+
+- `.env` : Fichier de configuration des variables d'environnement pour la production
+- `keycloak-swarm.yml` : Configuration Docker Swarm pour Keycloak en production
+- `postgresql-swarm.yml` : Configuration Docker Swarm pour PostgreSQL en production
+
+---
+
+## Pipeline CI/CD
+
+Le projet inclut un `Jenkinsfile` pour automatiser le déploiement de l'infrastructure sur le serveur NAS via Jenkins.
+
+Le pipeline permet :
+- La validation de l'infrastructure
+- Le déploiement automatisé sur l'environnement cible
+- La vérification post-déploiement
+
+---
+
 ## En cas de problème d'accès
 
 Au démarrage le mot de passe et le nom d'utilisateur est: ``admin``
@@ -99,8 +154,8 @@ Si vous perdez à nouveau l'accès à votre compte administrateur Keycloak, vous
 cette commande depuis le terminal du conteneur :
 
 ````shell
-# Ce connecter au conteneur
- docker exec -ti  keycloak bash
+# Se connecter au conteneur Keycloak dans Docker Swarm
+docker exec -ti $(docker ps -q -f "name=keycloak") bash
 ````
 
 ````shell
@@ -122,7 +177,11 @@ Commande docker pour faire un backup de la base de données `kc_db` avec l'utili
 `./postgres_home/backups/` dans le fichier sql `backup-Test.sql`
 
 ```shell
+# Pour un conteneur classique
 docker exec postgres-kc pg_dump -U max_admin  kc_db > ./postgres_home/backups/backup-Test.sql
+
+# Pour un service Docker Swarm
+docker exec $(docker ps -q -f "name=postgresql") pg_dump -U max_admin kc_db > ./postgres_home/backups/backup-Test.sql
 ```
 
 ---
@@ -138,15 +197,15 @@ Commande pour keycloak en version supérieure à 17
 /opt/keycloak/bin/kc.sh export --realm=ghoverblog --file=/opt/keycloak/data/import/ghoverblog-realm.json --users=same_file
 ```
 
-Depuis docker
+Depuis docker (pour Docker Swarm)
 Export des realm est les utilisateurs dans le même fichier.
 
 ````shell
-# commande d'export
-docker exec -it keycloak /opt/keycloak/bin/kc.sh export --realm=ghoverblog --file=/opt/keycloak/data/ghoverblog-realm.json --users=same_file
+# commande d'export pour Docker Swarm
+docker exec -it $(docker ps -q -f "name=keycloak") /opt/keycloak/bin/kc.sh export --realm=ghoverblog --file=/opt/keycloak/data/ghoverblog-realm.json --users=same_file
 
 # copier du fichier dans le conteneur vers l'extérieur
-docker cp keycloak:/opt/keycloak/data/ghoverblog-realm.json ./ghoverblog-realm.json
+docker cp $(docker ps -q -f "name=keycloak"):/opt/keycloak/data/ghoverblog-realm.json ./ghoverblog-realm.json
 ````
 
 Les fichiers seront copier depuis le dossier ou la commande à était lancé
@@ -192,16 +251,16 @@ Après exécution de ces fichiers, vous pourrez supprimer l'instance créer dans
 Puis pour copier ces fichiers sur le disque local, exécuter la commande suivant :
 
 ```shell
-# commande
-docker cp keycloak:/tmp/[fichier de réception] ./[fichier cible]
+# commande pour Docker Swarm
+docker cp $(docker ps -q -f "name=keycloak"):/tmp/[fichier de réception] ./[fichier cible]
 # exemple
-docker cp keycloak:/tmp/ghoverblog-realm.json ./ghoverblog-realm.json
-docker cp keycloak:/tmp/ghoverblog-users-0.json ./ghoverblog-users-0.json
+docker cp $(docker ps -q -f "name=keycloak"):/tmp/ghoverblog-realm.json ./ghoverblog-realm.json
+docker cp $(docker ps -q -f "name=keycloak"):/tmp/ghoverblog-users-0.json ./ghoverblog-users-0.json
 ```
 
 ---
 
-### configuration des variables
+## Configuration des variables
 
 Ce fichier détaille les différentes variables utilisées dans une configuration Keycloak.
 
@@ -251,7 +310,7 @@ Ce fichier détaille les différentes variables utilisées dans une configuratio
   URL de connexion pour la base de données PostgreSQL.
 
 - **KC_DB_USERNAME** : `${USER_BD}`  
-  Nom d’utilisateur pour la connexion à la base de données.
+  Nom d'utilisateur pour la connexion à la base de données.
 
 - **KC_DB_PASSWORD** : `${PSW_DB}`  
   Mot de passe pour la connexion à la base de données.
@@ -259,10 +318,10 @@ Ce fichier détaille les différentes variables utilisées dans une configuratio
 #### Utilisateur administrateur temporaire
 
 - **KC_BOOTSTRAP_ADMIN_USERNAME** : `${KEYCLOAK_ADMIN}`  
-  Nom d'utilisateur pour l'initialisation de l’administrateur.
+  Nom d'utilisateur pour l'initialisation de l'administrateur.
 
 - **KC_BOOTSTRAP_ADMIN_PASSWORD** : `${KEYCLOAK_ADMIN_PASSWORD}`  
-  Mot de passe pour l'initialisation de l’administrateur.
+  Mot de passe pour l'initialisation de l'administrateur.
 
 #### Configuration de la JVM
 
@@ -313,7 +372,41 @@ Pour plus d'information sur les variables pour la JVM voici une liste de site
 
 ## Structure des fichiers
 
-Le projet contient les fichiers suivants :
+Le projet contient la structure suivante :
+
+```
+nas-infrastructur/
+├── Jenkinsfile                          # Pipeline CI/CD pour Jenkins
+├── README.md                            # Documentation du projet
+├── docker-compose-prod.yml              # Configuration Docker Compose pour production
+├── environments/                        # Configurations par environnement
+│   ├── dev/                            # Environnement de développement
+│   │   ├── .env                        # Variables d'environnement dev
+│   │   ├── keycloak-swarm.yml          # Stack Keycloak pour Docker Swarm
+│   │   └── postgresql-swarm.yml        # Stack PostgreSQL pour Docker Swarm
+│   └── nas/                            # Environnement NAS/Production
+│       ├── .env                        # Variables d'environnement production
+│       ├── keycloak-swarm.yml          # Stack Keycloak pour Docker Swarm
+│       └── postgresql-swarm.yml        # Stack PostgreSQL pour Docker Swarm
+├── infrastructure/                      # Scripts d'infrastructure
+│   ├── check-infra.sh                  # Vérification de l'infrastructure
+│   └── deploy-nas.sh                   # Déploiement sur serveur NAS
+├── keycloak_home/                       # Configuration Keycloak
+│   └── config/
+│       ├── ghoverblog-realm.json       # Configuration du realm
+│       └── ghoverblog-users.json       # Utilisateurs du realm
+├── postgres_home/                       # Données PostgreSQL
+│   ├── backups/                        # Sauvegardes de la base
+│   │   └── backup-Test.sql
+│   └── init/                           # Scripts d'initialisation
+│       ├── 00_base_ghoverblog.sql
+│       └── ms_article_backup.sql
+└── script/                             # Scripts de gestion
+    ├── create-network.sh               # Création du réseau overlay
+    ├── deploy-dev.sh                   # Déploiement environnement dev
+    ├── stop-dev.sh                     # Arrêt environnement dev
+    └── wait-for-it.sh                  # Script d'attente PostgreSQL
+```
 
 ### `ghoverblog-realm.json`
 
@@ -343,10 +436,9 @@ Ce fichier contient une liste d'utilisateurs préconfigurés avec leurs rôles, 
 Ces fichiers peuvent être importés directement dans Keycloak pour initialiser la configuration et les utilisateurs
 nécessaires à votre projet.
 
-
 ---
 
-### Gestion des Themes Keycloak
+## Gestion des Themes Keycloak
 
 Exemple de structure
 
@@ -388,7 +480,7 @@ ghoverblog/
 ```
 
 - `Structure et Logique des Thèmes`
-  Un thème Keycloak est organisé en sous-dossiers spécifiques pour chaque domaine d’application. Keycloak détecte
+  Un thème Keycloak est organisé en sous-dossiers spécifiques pour chaque domaine d'application. Keycloak détecte
   automatiquement ces domaines grâce à leur nom de dossier. Les noms de ces dossiers sont standardisés dans Keycloak :
 
 `login` : Contient les templates et ressources pour les pages de connexion.
@@ -398,7 +490,7 @@ ghoverblog/
 
 ---
 
-### Information
+## Information
 
 1. Keycloak
 
@@ -413,5 +505,10 @@ ghoverblog/
 * La version de ce
   projet [postgres:15.2-bullseye](https://hub.docker.com/layers/library/postgres/15.2-bullseye/images/sha256-6b91d38a9c596fa4e6a1276f6f81810882d9f292a09f9cf2647c6a554c8b6d00?context=explore)
 
-3. Other
-    * Le planificateur de [tâches crontab](https://www.linuxtricks.fr/wiki/cron-et-crontab-le-planificateur-de-taches) 
+3. Docker Swarm
+
+* Documentation officielle [Docker Swarm](https://docs.docker.com/engine/swarm/)
+* Guide des [Docker Stack](https://docs.docker.com/engine/reference/commandline/stack/)
+
+4. Other
+    * Le planificateur de [tâches crontab](https://www.linuxtricks.fr/wiki/cron-et-crontab-le-planificateur-de-taches)
