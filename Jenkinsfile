@@ -82,8 +82,7 @@ pipeline {
                 script {
                     withCredentials([sshUserPrivateKey(
                             credentialsId: 'NAS_KEY',
-                            keyFileVariable: 'SSH_KEY',
-                            usernameVariable: 'SSH_USER'
+                            keyFileVariable: 'SSH_KEY'
                     )]) {
                         sh '''
                             echo "=== LANCEMENT DU DÉPLOIEMENT ==="
