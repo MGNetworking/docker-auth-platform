@@ -151,7 +151,7 @@ if ! docker stack ls --format "{{.Name}}" | grep -q "^${KC_STACK_NAME}$"; then
     # Vérifier que Keycloak démarre correctement
     KEYCLOAK_READY=false
     for i in {1..20}; do
-        if curl -f "http://localhost:${KEYCLOAK_PORT}/health" >/dev/null 2>&1; then
+        if curl -f "http://192.168.1.56:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
             echo "Keycloak opérationnel (tentative $i/20)"
             KEYCLOAK_READY=true
             break
@@ -170,7 +170,7 @@ else
     echo "Stack Keycloak déjà déployée"
 
     # Vérifier qu'elle fonctionne toujours
-    if curl -f "http://localhost:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
+    if curl -f "http://192.168.1.56:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
         echo "Keycloak existant et opérationnel"
     else
         echo "Keycloak existant mais non accessible"
@@ -199,14 +199,14 @@ else
 fi
 
 # Test Keycloak local
-if curl -f "http://localhost:${KEYCLOAK_PORT}/health" >/dev/null 2>&1; then
+if curl -f "http://192.168.1.56:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
     echo "Keycloak (local): Accessible"
 else
     echo "Keycloak (local): Non accessible"
 fi
 
 # Test Keycloak externe (si disponible)
-if curl -f "https://${KEYCLOAK_HOSTNAME}/health" >/dev/null 2>&1; then
+if curl -f "https://${KEYCLOAK_HOSTNAME}/realms/master" >/dev/null 2>&1; then
     echo "Keycloak (externe): Accessible via https://${KEYCLOAK_HOSTNAME}"
 else
     echo "Keycloak (externe): Non accessible (normal si proxy non configuré)"
@@ -216,8 +216,8 @@ echo ""
 echo "=== DÉPLOIEMENT D'INFRASTRUCTURE TERMINÉ ==="
 echo ""
 echo "Infrastructure disponible:"
-echo "  PostgreSQL: localhost:${DB_PORT_EXTERNAL}"
-echo "  Keycloak Admin: http://localhost:${KEYCLOAK_PORT}"
+echo "  PostgreSQL: 192.168.1.56:${DB_PORT_EXTERNAL}"
+echo "  Keycloak Admin: http://192.168.1.56:${KEYCLOAK_PORT}"
 echo "  Keycloak Public: https://${KEYCLOAK_HOSTNAME}"
 echo ""
 echo "L'infrastructure est prête pour les déploiements d'applications."
