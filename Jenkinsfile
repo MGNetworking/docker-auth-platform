@@ -29,21 +29,21 @@ pipeline {
                             echo "=== PRÉPARATION DU PACKAGE ==="
                             
                             # Créer le package avec tous les fichiers
-                            mkdir -p deployment-package/environments/nas
-                            mkdir -p deployment-package/infrastructure
-                            mkdir -p deployment-package/scripts
-                            mkdir -p deployment-package/postgres_home
+                            mkdir -p node/environments/nas
+                            mkdir -p node/infrastructure
+                            mkdir -p node/scripts
+                            mkdir -p node/postgres_home
                             
                             # Copier tous les fichiers nécessaires
-                            cp environments/nas/*.yml deployment-package/environments/nas/
-                            cp environments/nas/.env deployment-package/environments/nas/
-                            cp infrastructure/*.sh deployment-package/infrastructure/
-                            cp scripts/*.sh deployment-package/scripts/
-                            cp -r postgres_home/* deployment-package/postgres_home/ 2>/dev/null || true
+                            cp environments/nas/*.yml node/environments/nas/
+                            cp environments/nas/.env node/environments/nas/
+                            cp infrastructure/*.sh node/infrastructure/
+                            cp script/*.sh node/scripts/
+                            cp -r postgres_home/* node/postgres_home/ 2>/dev/null || true
                             
                             # Rendre les scripts exécutables
-                            chmod +x deployment-package/infrastructure/*.sh
-                            chmod +x deployment-package/scripts/*.sh
+                            chmod +x node/infrastructure/*.sh
+                            chmod +x node/scripts/*.sh
                             
                             echo "=== CRÉATION INFRASTRUCTURE SUR LE NAS ==="
                             
@@ -53,7 +53,7 @@ pipeline {
                             "
                             
                             # Transférer tous les fichiers
-                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -r deployment-package/* \
+                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -r node/* \
                                 $SSH_USER@${NAS_SERVER}:/volume1/docker/keycloak-infrastructure/
                             
                             echo "=== VÉRIFICATION INFRASTRUCTURE ==="
