@@ -17,7 +17,7 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-shared:5432/${DB_NAME}
+      KC_DB_URL: jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}
       KC_DB_USERNAME: ${USER_BD}
       KC_DB_PASSWORD: ${PSW_DB}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
@@ -28,7 +28,9 @@ services:
       - keycloak_data:/opt/keycloak/data
     entrypoint: [
       "./wait-for-it.sh",
-      "postgres-shared:5432",
+      "postgres-stack_postgres-shared:5432",
+      "--timeout=20",
+      "--strict",
       "--",
       "/opt/keycloak/bin/kc.sh",
       "start",
