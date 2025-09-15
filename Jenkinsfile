@@ -47,7 +47,7 @@ pipeline {
                             echo "=== CRÉATION INFRASTRUCTURE SUR LE NAS ==="
                             
                             # Créer la structure sur le NAS
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p 99 maxime@${NAS_SERVER}"
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p 99 maxime@${NAS_SERVER} "
                                 mkdir -p /volume1/docker/keycloak-infrastructure
                             "
                             
