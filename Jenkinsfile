@@ -93,7 +93,7 @@ pipeline {
                             
                             # Exécuter le script de déploiement Docker
                             ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p 99 maxime@${NAS_SERVER} \
-                                "cd /volume1/docker/keycloak-infrastructure && ./infrastructure/deploy-infra.sh"
+                                "cd /volume1/docker/keycloak-infrastructure && ./infrastructure/deploy-nas.sh"
                             
                             DEPLOY_STATUS=$?
                             
