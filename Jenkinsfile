@@ -16,7 +16,7 @@ pipeline {
         // STAGE 1 : Création infrastructure (dossiers + fichiers)
         // ========================================
         stage('Setup Infrastructure') {
-            when { env.GIT_BRANCH == 'origin/nas' }
+            when { branch 'nas' }
             steps {
                 echo "Création de l'infrastructure sur le serveur NAS..."
                 script {
@@ -77,7 +77,7 @@ pipeline {
         // STAGE 2 : Déploiement (Docker stacks)
         // ========================================
         stage('Deploy Services') {
-            when { env.GIT_BRANCH == 'origin/nas' }
+            when { branch 'nas' }
             steps {
                 echo "Déploiement des services Docker..."
                 script {
@@ -111,7 +111,7 @@ pipeline {
         // STAGE 3 : Vérification des services Docker
         // ========================================
         stage('Verify Services') {
-            when { env.GIT_BRANCH == 'origin/nas' }
+            when { branch 'nas' }
             steps {
                 echo "Vérification que les services Docker sont en cours d'exécution..."
                 script {
