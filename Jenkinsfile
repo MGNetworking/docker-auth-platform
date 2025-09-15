@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         // Credentials pour le serveur NAS
-        NAS_KEY = credentials('NAS_KEY') // TODO
-        NAS_SERVER = '192.168.1.56'
+        NAS_KEY = credentials('NAS_KEY')
+        NAS_SERVER = "${IP_NAS}"  // Référence secret Jenkins
 
         // Variables pour traçabilité
         GIT_TAG = sh(script: "git describe --tags --always", returnStdout: true).trim()
@@ -16,7 +16,7 @@ pipeline {
         // STAGE 1 : Création infrastructure (dossiers + fichiers)
         // ========================================
         stage('Setup Infrastructure') {
-            when { branch 'nas' }
+            when { env.GIT_BRANCH == 'origin/nas' }
             steps {
                 echo "Création de l'infrastructure sur le serveur NAS..."
                 script {
@@ -77,7 +77,7 @@ pipeline {
         // STAGE 2 : Déploiement (Docker stacks)
         // ========================================
         stage('Deploy Services') {
-            when { branch 'nas' }
+            when { env.GIT_BRANCH == 'origin/nas' }
             steps {
                 echo "Déploiement des services Docker..."
                 script {
@@ -111,7 +111,7 @@ pipeline {
         // STAGE 3 : Vérification des services Docker
         // ========================================
         stage('Verify Services') {
-            when { branch 'nas' }
+            when { env.GIT_BRANCH == 'origin/nas' }
             steps {
                 echo "Vérification que les services Docker sont en cours d'exécution..."
                 script {
