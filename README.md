@@ -8,6 +8,7 @@
     * [Les Scripts de Déploiement](#les-scripts-de-déploiement)
     * [Scripts d'Infrastructure](#scripts-dinfrastructure)
     * [Script wait-for-it.sh](#script-wait-for-itsh)
+    * [Script de Redémarrage Automatique](#script-de-redémarrage-automatique)
     * [En cas de problème d'accès](#en-cas-de-problème-daccès)
 * [Environnements](#environnements)
     * [Environnement de Développement](#environnement-de-développement)
@@ -70,46 +71,18 @@ L'utilisation de PostgreSQL garantit une haute performance et une persistance fi
 
 Le projet fournit plusieurs scripts pour gérer le déploiement de l'infrastructure Keycloak et PostgreSQL via Docker Swarm.
 
-### Les Scripts de Déploiement
+### Scripts de Développement
 
-Ces scripts permettent de gérer les environnements de développement et de production.
-
-#### Commandes pour l'environnement de développement :
-
-```shell
-# Créer le réseau overlay nécessaire
-./script/create-network.sh
-
-# Déployer l'environnement de développement
-./script/deploy-dev.sh
-
-# Arrêter l'environnement de développement (sans supprimer les volumes)
-./script/stop-dev.sh
-```
+- **./script/create-network.sh** : Crée le réseau overlay Docker nécessaire pour la communication inter-services
+- **./script/deploy-dev.sh** : Déploie l'environnement de développement complet
+- **./script/stop-dev.sh** : Arrête l'environnement de développement sans supprimer les volumes
+- **./script/wait-for-it.sh** : Script d'attente pour s'assurer que PostgreSQL est prêt avant le démarrage de Keycloak
 
 ### Scripts d'Infrastructure
 
-Ces scripts sont utilisés pour le déploiement sur le serveur NAS via Jenkins.
-
-```shell
-# Vérifier que l'infrastructure est complète et opérationnelle
-./infrastructure/check-infra.sh
-
-# Déployer l'infrastructure sur le serveur NAS
-./infrastructure/deploy-nas.sh
-```
-
-### Script wait-for-it.sh
-
-Même avec un healthcheck, il peut y avoir des cas où PostgreSQL est en cours de démarrage mais n'est pas encore prêt.
-L'utilisation d'un script comme wait-for-it.sh peut ajouter une couche supplémentaire de fiabilité.
-
-Télécharger le Script wait-for-it.sh :
-
-```shell
-curl -o wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
-chmod +x wait-for-it.sh
-```
+- **./infrastructure/check-infra.sh** : Vérifie que l'infrastructure est complète et opérationnelle. Utilisé dans le Jenkinsfile lors de la stage "Deploy Services"
+- **./infrastructure/deploy-nas.sh** : Déploie l'infrastructure sur le serveur NAS. Utilisé dans le Jenkinsfile lors de la stage "Deploy Services"
+- **./infrastructure/restart-docker-stacks.sh** : Redémarre automatiquement les services Docker Swarm au démarrage du serveur, avec gestion d'attente et logging
 
 ---
 
@@ -269,15 +242,17 @@ Ce fichier détaille les différentes variables utilisées dans une configuratio
 - **KC_HOSTNAME** : `${HOSTNAME_PROD}`  
   Le domaine attendu pour Keycloak.
 
-- **KC_HOSTNAME_STRICT** : `true`  
-  Correspond à `--hostname-strict=true`. Keycloak vérifie que toutes les requêtes entrantes utilisent le nom d'hôte
-  défini explicitement.
+- **KC_HOSTNAME_URL** : `${KEYCLOAK_FRONTEND_URL}`  
+  Définit l'URL externe utilisée par Keycloak pour la génération des liens.
 
-- **KC_SPI_HOSTNAME_URL** : `${KEYCLOAK_FRONTEND_URL_PROD}`  
-  Correspond à `--spi-hostname-url`. Définit l'URL externe utilisée par Keycloak.
+- **KC_PROXY_HEADERS** : `xforwarded`  
+  Configure la gestion des headers de proxy (X-Forwarded-*).
 
-- **KC_COOKIE_SAME_SITE** : `None`  
-  Configure la stratégie `SameSite` des cookies (None, Lax ou Strict).
+- **KC_HOSTNAME_STRICT** : `false`  
+  Correspond à `--hostname-strict=false`. Keycloak accepte les requêtes avec différents noms d'hôte (mode debug).
+
+- **KC_HOSTNAME_STRICT_HTTPS** : `false`  
+  Désactive la vérification stricte HTTPS pour le hostname.
 
 - **KC_COOKIE_SECURE** : `true`  
   Indique que les cookies sécurisés sont gérés par un proxy comme Nginx.
@@ -290,8 +265,8 @@ Ce fichier détaille les différentes variables utilisées dans une configuratio
 - **KC_LOG_CONSOLE_LEVEL** : `info`  
   Définit le niveau de journalisation de la console (info, debug, warn, error).
 
-- **KC_LOG_CONSOLE_COLOR** : `true`  
-  Active la coloration des logs dans la console.
+- **KC_LOG_CONSOLE_COLOR** : `false`  
+  Désactive la coloration des logs dans la console (recommandé en production).
 
 #### Métriques et santé
 
@@ -306,8 +281,8 @@ Ce fichier détaille les différentes variables utilisées dans une configuratio
 - **KC_DB** : `postgres`  
   Définit le type de base de données utilisé (postgres, mysql, etc.).
 
-- **KC_DB_URL** : `jdbc:postgresql://postgres:5432/kc_db`  
-  URL de connexion pour la base de données PostgreSQL.
+- **KC_DB_URL** : `jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}`  
+  URL de connexion pour la base de données PostgreSQL avec le nom du service Docker Swarm.
 
 - **KC_DB_USERNAME** : `${USER_BD}`  
   Nom d'utilisateur pour la connexion à la base de données.
@@ -325,21 +300,29 @@ Ce fichier détaille les différentes variables utilisées dans une configuratio
 
 #### Configuration de la JVM
 
-- **JAVA_OPTS_APPEND** : `"-Dkeycloak.someOption=value -XX:MaxRAMPercentage=65"`  
-  Ajoute des options à la JVM pour ajuster ses performances ou config
+- **JAVA_OPTS_APPEND** : `"-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"`  
+  Ajoute des options à la JVM pour ajuster ses performances et configuration :
+    - `-XX:MaxRAMPercentage=75` : Limite l'utilisation mémoire à 75% de la RAM disponible
+    - `-Dkeycloak.profile=production` : Active le profil de production Keycloak
+    - `-Dquarkus.log.console.output=colored` : Active la coloration des logs Quarkus
 
 #### Tableau de comparaison Dev vs Prod
 
-| **Paramètre**          | **Dev**                        | **Prod**                        |
-|------------------------|--------------------------------|---------------------------------|
-| `KC_HOSTNAME_STRICT`   | `false`                        | `true`                          |
-| `KC_HOSTNAME`          | `${KEYCLOAK_FRONTEND_URL_DEV}` | `${KEYCLOAK_FRONTEND_URL_PROD}` |
-| `KC_COOKIE_SECURE`     | `false`                        | `true`                          |
-| `KC_PROXY`             | _(non défini)_                 | `edge`                          |
-| `KC_LOG_CONSOLE_LEVEL` | `info`                         | `info`                          |
-| `KC_HEALTH_ENABLED`    | `true`                         | `true`                          |
-| `KC_METRICS_ENABLED`   | `true`                         | `true`                          |
-| `JAVA_OPTS_APPEND`     | `"-XX:MaxRAMPercentage=65"`    | `"-XX:MaxRAMPercentage=75"`     |
+| **Paramètre**                | **Dev**                        | **Prod**                                   |
+|------------------------------|--------------------------------|--------------------------------------------|
+| `KC_HOSTNAME`                | `${KEYCLOAK_FRONTEND_URL_DEV}` | `${HOSTNAME_PROD}`                        |
+| `KC_HOSTNAME_URL`            | _(non défini)_                 | `${KEYCLOAK_FRONTEND_URL}`                |
+| `KC_PROXY_HEADERS`           | _(non défini)_                 | `xforwarded`                              |
+| `KC_HOSTNAME_STRICT`         | `false`                        | `false`                                   |
+| `KC_HOSTNAME_STRICT_HTTPS`   | _(non défini)_                 | `false`                                   |
+| `KC_COOKIE_SECURE`           | `false`                        | `true`                                    |
+| `KC_PROXY`                   | _(non défini)_                 | `edge`                                    |
+| `KC_LOG_CONSOLE_LEVEL`       | `info`                         | `info`                                    |
+| `KC_LOG_CONSOLE_COLOR`       | `true`                         | `false`                                   |
+| `KC_HEALTH_ENABLED`          | `true`                         | `true`                                    |
+| `KC_METRICS_ENABLED`         | `true`                         | `true`                                    |
+| `KC_DB_URL`                  | `postgres:5432/kc_db`          | `postgres-stack_postgres-shared:5432/...` |
+| `JAVA_OPTS_APPEND`           | `"-XX:MaxRAMPercentage=65"`    | `"-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"` |
 
 #### Option configure la JVM
 
@@ -390,7 +373,8 @@ nas-infrastructur/
 │       └── postgresql-swarm.yml        # Stack PostgreSQL pour Docker Swarm
 ├── infrastructure/                      # Scripts d'infrastructure
 │   ├── check-infra.sh                  # Vérification de l'infrastructure
-│   └── deploy-nas.sh                   # Déploiement sur serveur NAS
+│   ├── deploy-nas.sh                   # Déploiement sur serveur NAS
+│   └── restart-docker-stacks.sh        # Script de redémarrage automatique
 ├── keycloak_home/                       # Configuration Keycloak
 │   └── config/
 │       ├── ghoverblog-realm.json       # Configuration du realm
