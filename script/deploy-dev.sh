@@ -37,8 +37,13 @@ if [ -z "$PG_STACK_NAME" ] || [ -z "$KC_STACK_NAME" ]; then
     exit 1
 fi
 
+if [ -z "$REDIS_STACK_NAME" ]; then
+    echo "Variable REDIS_STACK_NAME manquante dans $ENV_FILE"
+    exit 1
+fi
+
 # Étape 1 : Créer le réseau overlay
-echo "Étape 1/3 : Création du réseau"
+echo "Étape 1/4 : Création du réseau"
 if [ -f "$NETWORK_SCRIPT" ]; then
     chmod +x $NETWORK_SCRIPT
     $NETWORK_SCRIPT
@@ -49,8 +54,38 @@ fi
 
 echo ""
 
-# Étape 2 : Déployer PostgreSQL
-echo "Étape 2/3 : Déploiement de PostgreSQL"
+# Étape 2 : Déployer Redis
+echo "Étape 2/4 : Déploiement de Redis"
+if [ -f "${ENV_DIR}/redis-swarm.yml" ]; then
+
+    docker stack deploy -c ${ENV_DIR}/redis-swarm.yml $REDIS_STACK_NAME
+
+    echo "Attente du démarrage de Redis..."
+    sleep 10
+
+    # Vérifier que Redis est prêt
+    timeout 60s bash -c '
+        until docker service logs ${REDIS_STACK_NAME}_redis 2>&1 | grep -q "Ready to accept connections"; do
+            echo "   Redis en cours de démarrage..."
+            sleep 5
+        done
+    '
+
+    if [ $? -eq 0 ]; then
+        echo "Redis opérationnel"
+    else
+        echo "Timeout - Redis ne démarre pas"
+        exit 1
+    fi
+else
+    echo "Fichier redis-swarm.yml introuvable !"
+    exit 1
+fi
+
+echo ""
+
+# Étape 3 : Déployer PostgreSQL
+echo "Étape 3/4 : Déploiement de PostgreSQL"
 if [ -f "${ENV_DIR}/postgresql-swarm.yml" ]; then
 
     # Cette commande HÉRITE des variables du shell parent
@@ -80,8 +115,8 @@ fi
 
 echo ""
 
-# Étape 3 : Déployer Keycloak
-echo "Étape 3/3 : Déploiement de Keycloak"
+# Étape 4 : Déployer Keycloak
+echo "Étape 4/4 : Déploiement de Keycloak"
 if [ -f "${ENV_DIR}/keycloak-swarm.yml" ]; then
 
     # Cette commande HÉRITE des variables du shell parent
@@ -113,18 +148,22 @@ echo ""
 echo "Déploiement terminé !"
 echo ""
 echo "Services disponibles :"
-echo "   Keycloak : http://localhost:8999"
+echo "   Redis : localhost:${REDIS_PORT}"
 echo "   PostgreSQL : localhost:5499"
+echo "   Keycloak : http://localhost:8999"
 echo ""
 echo "Commandes utiles :"
 echo "   docker stack ls"
 echo "   docker service ls"
-echo "   docker service logs postgres-stack_postgres-shared"
-echo "   docker service logs keycloak-stack_keycloak"
+echo "   docker service logs ${REDIS_STACK_NAME}_redis"
+echo "   docker service logs ${PG_STACK_NAME}_postgres-shared"
+echo "   docker service logs ${KC_STACK_NAME}_keycloak"
 echo ""
 echo "Pour les logs :"
+echo "   docker service logs ${REDIS_STACK_NAME}_redis"
 echo "   docker service logs ${PG_STACK_NAME}_postgres-shared"
 echo "   docker service logs ${KC_STACK_NAME}_keycloak"
 echo "Pour arrêter :"
 echo "   docker stack rm $KC_STACK_NAME"
 echo "   docker stack rm $PG_STACK_NAME"
+echo "   docker stack rm $REDIS_STACK_NAME"

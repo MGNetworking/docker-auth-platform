@@ -30,14 +30,15 @@ set +a
 cd "$BASE_DIR"
 
 # Vérifier les variables critiques
-if [ -z "$PG_STACK_NAME" ] || [ -z "$KC_STACK_NAME" ]; then
-    echo "ERREUR: Variables PG_STACK_NAME ou KC_STACK_NAME non définies"
+if [ -z "$PG_STACK_NAME" ] || [ -z "$KC_STACK_NAME" ] || [ -z "$REDIS_STACK_NAME" ]; then
+    echo "ERREUR: Variables PG_STACK_NAME, KC_STACK_NAME ou REDIS_STACK_NAME non définies"
     exit 1
 fi
 
 echo "Configuration chargée:"
 echo "  PG_STACK_NAME: $PG_STACK_NAME"
 echo "  KC_STACK_NAME: $KC_STACK_NAME"
+echo "  REDIS_STACK_NAME: $REDIS_STACK_NAME"
 echo "  DB_USER: $DB_USER"
 echo "  KEYCLOAK_HOSTNAME: $KEYCLOAK_HOSTNAME"
 
@@ -97,7 +98,47 @@ else
     echo "Réseau company_network déjà existant"
 fi
 
-# Étape 4: Déploiement PostgreSQL
+# Étape 4: Déploiement Redis
+echo ""
+echo "=== DÉPLOIEMENT REDIS ==="
+
+if ! docker stack ls --format "{{.Name}}" | grep -q "^${REDIS_STACK_NAME}$"; then
+    echo "Déploiement de la stack Redis ($REDIS_STACK_NAME)..."
+    docker stack deploy -c environments/nas/redis-swarm.yml "$REDIS_STACK_NAME"
+
+    echo "Attente du démarrage de Redis..."
+    sleep 10
+
+    # Vérifier que Redis démarre correctement
+    REDIS_READY=false
+    for i in {1..12}; do
+        if docker service logs "${REDIS_STACK_NAME}_redis-shared" 2>&1 | grep -q "Ready to accept connections"; then
+            echo "Redis opérationnel (tentative $i/12)"
+            REDIS_READY=true
+            break
+        fi
+        echo "Redis en cours de démarrage... (tentative $i/12)"
+        sleep 5
+    done
+
+    if [ "$REDIS_READY" = false ]; then
+        echo "ERREUR: Redis ne démarre pas après 1 minute"
+        echo "Logs Redis:"
+        docker service logs "${REDIS_STACK_NAME}_redis-shared" --tail 20
+        exit 1
+    fi
+else
+    echo "Stack Redis déjà déployée"
+
+    # Vérifier qu'elle fonctionne toujours
+    if docker service logs "${REDIS_STACK_NAME}_redis-shared" 2>&1 | tail -5 | grep -q "Ready to accept connections"; then
+        echo "Redis existant et opérationnel"
+    else
+        echo "Redis existant mais peut-être en cours de redémarrage"
+    fi
+fi
+
+# Étape 5: Déploiement PostgreSQL
 echo ""
 echo "=== DÉPLOIEMENT POSTGRESQL ==="
 
@@ -137,7 +178,7 @@ else
     fi
 fi
 
-# Étape 5: Déploiement Keycloak
+# Étape 6: Déploiement Keycloak
 echo ""
 echo "=== DÉPLOIEMENT KEYCLOAK ==="
 
@@ -177,7 +218,7 @@ else
     fi
 fi
 
-# Étape 6: Vérification finale
+# Étape 7: Vérification finale
 echo ""
 echo "=== VÉRIFICATION FINALE ==="
 
@@ -190,6 +231,18 @@ docker service ls
 
 echo ""
 echo "Tests de connectivité:"
+
+# Test Redis
+if timeout 5 redis-cli -h 192.168.1.56 -p "${REDIS_PORT_EXTERNAL:-6379}" ping | grep -q "PONG" 2>/dev/null; then
+    echo "Redis: Connexion OK"
+else
+    # Test alternatif avec docker exec si redis-cli n'est pas disponible sur l'hôte
+    if docker exec $(docker ps -q -f name=redis-shared) redis-cli ping 2>/dev/null | grep -q "PONG"; then
+        echo "Redis: Connexion OK (via container)"
+    else
+        echo "Redis: Problème de connexion"
+    fi
+fi
 
 # Test PostgreSQL
 if docker exec $(docker ps -q -f name=postgres-shared) pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; then
@@ -216,6 +269,7 @@ echo ""
 echo "=== DÉPLOIEMENT D'INFRASTRUCTURE TERMINÉ ==="
 echo ""
 echo "Infrastructure disponible:"
+echo "  Redis: 192.168.1.56:${REDIS_PORT_EXTERNAL:-6379}"
 echo "  PostgreSQL: 192.168.1.56:${DB_PORT_EXTERNAL}"
 echo "  Keycloak Admin: http://192.168.1.56:${KEYCLOAK_PORT}"
 echo "  Keycloak Public: https://${KEYCLOAK_HOSTNAME}"

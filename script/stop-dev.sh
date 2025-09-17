@@ -13,16 +13,16 @@ if [ -f "environments/dev/.env" ]; then
     set -a
     source environments/dev/.env
     set +a
-    echo "Variables chargées: PG_STACK_NAME=$PG_STACK_NAME, KC_STACK_NAME=$KC_STACK_NAME"
+    echo "Variables chargées: REDIS_STACK_NAME=$REDIS_STACK_NAME, PG_STACK_NAME=$PG_STACK_NAME, KC_STACK_NAME=$KC_STACK_NAME"
 else
     echo "Erreur: Fichier environments/dev/.env introuvable !"
-    echo "Les variables PG_STACK_NAME et KC_STACK_NAME sont requises"
+    echo "Les variables REDIS_STACK_NAME, PG_STACK_NAME et KC_STACK_NAME sont requises"
     exit 1
 fi
 
 # Vérifier que les variables sont définies
-if [ -z "$PG_STACK_NAME" ] || [ -z "$KC_STACK_NAME" ]; then
-    echo "Erreur: Variables PG_STACK_NAME ou KC_STACK_NAME non définies dans .env"
+if [ -z "$REDIS_STACK_NAME" ] || [ -z "$PG_STACK_NAME" ] || [ -z "$KC_STACK_NAME" ]; then
+    echo "Erreur: Variables REDIS_STACK_NAME, PG_STACK_NAME ou KC_STACK_NAME non définies dans .env"
     exit 1
 fi
 
@@ -43,7 +43,7 @@ stop_stack() {
 }
 
 # Arrêter Keycloak en premier (dépendant de PostgreSQL)
-echo "Étape 1/2: Arrêt de Keycloak..."
+echo "Étape 1/3: Arrêt de Keycloak..."
 stop_stack "$KC_STACK_NAME"
 
 # Attendre un peu pour que l'arrêt soit propre
@@ -53,12 +53,21 @@ if [ $? -eq 0 ]; then
 fi
 
 # Arrêter PostgreSQL
-echo "Étape 2/2: Arrêt de PostgreSQL..."
+echo "Étape 2/3: Arrêt de PostgreSQL..."
 stop_stack "$PG_STACK_NAME"
 
 if [ $? -eq 0 ]; then
     echo "Attente de l'arrêt complet de PostgreSQL..."
     sleep 10
+fi
+
+# Arrêter Redis (aucune dépendance)
+echo "Étape 3/3: Arrêt de Redis..."
+stop_stack "$REDIS_STACK_NAME"
+
+if [ $? -eq 0 ]; then
+    echo "Attente de l'arrêt complet de Redis..."
+    sleep 5
 fi
 
 # Vérification finale
@@ -67,13 +76,13 @@ echo "=== Stacks restantes ==="
 docker stack ls
 
 echo "=== Services restants ==="
-docker service ls | grep -E "(keycloak|postgres)" || echo "Aucun service keycloak/postgres trouvé"
+docker service ls | grep -E "(keycloak|postgres|redis)" || echo "Aucun service keycloak/postgres/redis trouvé"
 
 echo "=== Containers restants ==="
-docker ps | grep -E "(keycloak|postgres)" || echo "Aucun container keycloak/postgres trouvé"
+docker ps | grep -E "(keycloak|postgres|redis)" || echo "Aucun container keycloak/postgres/redis trouvé"
 
 echo "=== Volumes préservés ==="
-docker volume ls | grep -E "(PG_DATA|KEYCLOAK_DATA)" || echo "Aucun volume trouvé"
+docker volume ls | grep -E "(PG_DATA|KEYCLOAK_DATA|REDIS_DATA)" || echo "Aucun volume trouvé"
 
 echo ""
 echo "Arrêt terminé!"
@@ -84,4 +93,4 @@ echo "Pour redémarrer:"
 echo "  ./deploy.sh dev"
 echo ""
 echo "Pour supprimer aussi les volumes (ATTENTION - perte de données):"
-echo "  docker volume rm PG_DATA_DEV KEYCLOAK_DATA_DEV"
+echo "  docker volume rm PG_DATA_DEV KEYCLOAK_DATA_DEV REDIS_DATA"
