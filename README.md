@@ -116,6 +116,76 @@ Docker Swarm est utilisé comme orchestrateur pour gérer le déploiement des se
     - Réseau `company_network` pour la communication inter-services
     - Mode overlay avec option attachable
 
+### Script de Redémarrage Automatique
+
+Le script **`infrastructure/restart-docker-stacks.sh`** est conçu pour automatiser le redémarrage des services Docker
+après un redémarrage du serveur NAS Synology.
+
+#### Fonctionnalités principales
+
+Ce script assure une remise en service automatique et sécurisée de l'infrastructure :
+
+- **Vérification Docker** : Attend que Docker soit complètement opérationnel
+- **Vérification Swarm** : Contrôle l'état de Docker Swarm
+- **Redémarrage ordonné** : Services redémarrés dans l'ordre correct
+- **Logging complet** : Toutes les opérations sont tracées dans un fichier log
+- **Gestion d'erreurs** : Arrêt du script en cas de problème critique
+
+#### Configuration du script
+
+```bash
+LOG_FILE="/volume1/development/scripts/logs/docker-stacks-restart.log"
+MAX_WAIT=300        # 5 minutes maximum d'attente
+WAIT_INTERVAL=10    # Vérification toutes les 10 secondes
+```
+
+#### Séquence d'exécution
+
+1. **Phase d'attente** : Le script attend jusqu'à 5 minutes que Docker soit disponible
+2. **Vérification Swarm** : Contrôle que Docker Swarm est dans l'état "active"
+3. **Stabilisation** : Pause de 30 secondes pour permettre la stabilisation du système
+4. **Redémarrage PostgreSQL** : Force la mise à jour du service PostgreSQL
+5. **Attente intermédiaire** : 20 secondes pour que PostgreSQL soit prêt
+6. **Redémarrage Keycloak** : Force la mise à jour du service Keycloak
+7. **Vérification finale** : Contrôle de l'état des services
+
+#### Utilisation recommandée
+
+Ce script est particulièrement utile pour :
+
+- **Redémarrage automatique** après un reboot du serveur NAS
+- **Intégration avec le planificateur de tâches** Synology
+- **Maintenance programmée** des services
+- **Récupération après incident** système
+
+#### Configuration dans Synology
+
+Pour automatiser l'exécution au démarrage :
+
+1. **Panneau de configuration** > **Planificateur de tâches**
+2. **Créer** > **Tâche programmée** > **Script défini par l'utilisateur**
+3. **Événement** : "Au démarrage"
+4. **Utilisateur** : root
+5. **Script** : `/volume1/docker/keycloak-infrastructure/infrastructure/restart-docker-stacks.sh`
+
+#### Logs et monitoring
+
+Le script génère des logs détaillés pour le suivi :
+
+```bash
+# Consulter les logs
+tail -f /volume1/development/scripts/logs/docker-stacks-restart.log
+
+# Logs typiques
+2024-01-15 08:30:15 - === Démarrage du script de redémarrage des stacks Docker ===
+2024-01-15 08:30:15 - Vérification de l'état de Docker...
+2024-01-15 08:30:25 - Docker est prêt après 10 secondes
+2024-01-15 08:30:25 - Docker Swarm est actif
+2024-01-15 08:30:55 - Service PostgreSQL redémarré avec succès
+2024-01-15 08:31:25 - Service Keycloak redémarré avec succès
+2024-01-15 08:31:35 - === Script terminé avec succès ===
+```
+
 ### Script wait-for-it.sh
 
 Le script `wait-for-it.sh` est utilisé dans Keycloak pour attendre que PostgreSQL soit prêt avant de démarrer :
