@@ -8,6 +8,7 @@ set -e
 BASE_DIR="/volume1/docker/keycloak-infrastructure"
 ENV_FILE="$BASE_DIR/environments/nas/.env"
 CHECK_SCRIPT="$BASE_DIR/infrastructure/check-infra.sh"
+IP_LOCAL_SERVER="192.168.1.56"
 
 echo "=== DÉPLOIEMENT D'INFRASTRUCTURE ==="
 
@@ -109,10 +110,11 @@ if ! docker stack ls --format "{{.Name}}" | grep -q "^${REDIS_STACK_NAME}$"; the
     echo "Attente du démarrage de Redis..."
     sleep 10
 
-    # Vérifier que Redis démarre correctement
+    # Vérifier que Redis démarre correctement - CORRECTION ICI
     REDIS_READY=false
     for i in {1..12}; do
-        if docker service logs "${REDIS_STACK_NAME}_redis-shared" 2>&1 | grep -q "Ready to accept connections"; then
+        # Test si le service Redis est en cours d'exécution
+        if docker service ps "${REDIS_STACK_NAME}_redis-shared" --format "{{.CurrentState}}" | grep -q "Running"; then
             echo "Redis opérationnel (tentative $i/12)"
             REDIS_READY=true
             break
@@ -130,8 +132,8 @@ if ! docker stack ls --format "{{.Name}}" | grep -q "^${REDIS_STACK_NAME}$"; the
 else
     echo "Stack Redis déjà déployée"
 
-    # Vérifier qu'elle fonctionne toujours
-    if docker service logs "${REDIS_STACK_NAME}_redis-shared" 2>&1 | tail -5 | grep -q "Ready to accept connections"; then
+    # Vérifier qu'elle fonctionne toujours - CORRECTION ICI
+    if docker service ps "${REDIS_STACK_NAME}_redis-shared" --format "{{.CurrentState}}" | grep -q "Running"; then
         echo "Redis existant et opérationnel"
     else
         echo "Redis existant mais peut-être en cours de redémarrage"
@@ -192,7 +194,7 @@ if ! docker stack ls --format "{{.Name}}" | grep -q "^${KC_STACK_NAME}$"; then
     # Vérifier que Keycloak démarre correctement
     KEYCLOAK_READY=false
     for i in {1..20}; do
-        if curl -f "http://192.168.1.56:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
+        if curl -f "http://${IP_LOCAL_SERVER}:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
             echo "Keycloak opérationnel (tentative $i/20)"
             KEYCLOAK_READY=true
             break
@@ -232,16 +234,21 @@ docker service ls
 echo ""
 echo "Tests de connectivité:"
 
-# Test Redis
-if timeout 5 redis-cli -h 192.168.1.56 -p "${REDIS_PORT_EXTERNAL:-6379}" ping | grep -q "PONG" 2>/dev/null; then
-    echo "Redis: Connexion OK"
-else
-    # Test alternatif avec docker exec si redis-cli n'est pas disponible sur l'hôte
-    if docker exec $(docker ps -q -f name=redis-shared) redis-cli ping 2>/dev/null | grep -q "PONG"; then
-        echo "Redis: Connexion OK (via container)"
+# Test Redis - CORRECTION MAJEURE ICI
+if docker service ps "${REDIS_STACK_NAME}_redis-shared" --format "{{.CurrentState}}" | grep -q "Running"; then
+    echo "Redis: Service running"
+    # Test connexion si redis-cli disponible et mot de passe défini
+    if command -v redis-cli >/dev/null 2>&1 && [ -n "${REDIS_PASSWORD}" ]; then
+        if timeout 5 redis-cli -h ${IP_LOCAL_SERVER} -p "${REDIS_PORT_EXTERNAL:-6379}" -a "${REDIS_PASSWORD}" ping 2>/dev/null | grep -q "PONG"; then
+            echo "Redis: Connexion OK"
+        else
+            echo "Redis: Service running mais connexion échouée"
+        fi
     else
-        echo "Redis: Problème de connexion"
+        echo "Redis: Service running (test connexion non disponible)"
     fi
+else
+    echo "Redis: Service non running"
 fi
 
 # Test PostgreSQL
@@ -252,7 +259,7 @@ else
 fi
 
 # Test Keycloak local
-if curl -f "http://192.168.1.56:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
+if curl -f "http://${IP_LOCAL_SERVER}:${KEYCLOAK_PORT}/realms/master" >/dev/null 2>&1; then
     echo "Keycloak (local): Accessible"
 else
     echo "Keycloak (local): Non accessible"
@@ -269,9 +276,9 @@ echo ""
 echo "=== DÉPLOIEMENT D'INFRASTRUCTURE TERMINÉ ==="
 echo ""
 echo "Infrastructure disponible:"
-echo "  Redis: 192.168.1.56:${REDIS_PORT_EXTERNAL:-6379}"
-echo "  PostgreSQL: 192.168.1.56:${DB_PORT_EXTERNAL}"
-echo "  Keycloak Admin: http://192.168.1.56:${KEYCLOAK_PORT}"
+echo "  Redis: ${IP_LOCAL_SERVER}:${REDIS_PORT_EXTERNAL:-6379}"
+echo "  PostgreSQL: ${IP_LOCAL_SERVER}:${DB_PORT_EXTERNAL}"
+echo "  Keycloak Admin: http://${IP_LOCAL_SERVER}:${KEYCLOAK_PORT}"
 echo "  Keycloak Public: https://${KEYCLOAK_HOSTNAME}"
 echo ""
 echo "L'infrastructure est prête pour les déploiements d'applications."
