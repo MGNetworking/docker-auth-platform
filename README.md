@@ -1,14 +1,14 @@
-# Keycloak avec PostgreSQL - Gestion d'Authentification et d'Autorisation
+# Keycloak avec PostgreSQL et Redis - Gestion d'Authentification et d'Autorisation
 
 * [Technologies utilisées](#technologies-utilisées)
     * [Keycloak](#keycloak)
     * [PostgreSQL](#postgresql)
+    * [Redis](#redis)
     * [Docker Swarm](#docker-swarm)
 * [Scripts de Gestion](#scripts-de-gestion)
     * [Les Scripts de Déploiement](#les-scripts-de-déploiement)
     * [Scripts d'Infrastructure](#scripts-dinfrastructure)
     * [Script wait-for-it.sh](#script-wait-for-itsh)
-    * [Script de Redémarrage Automatique](#script-de-redémarrage-automatique)
     * [En cas de problème d'accès](#en-cas-de-problème-daccès)
 * [Environnements](#environnements)
     * [Environnement de Développement](#environnement-de-développement)
@@ -18,6 +18,7 @@
 * [Gestion des realm role / user dans Keycloak](#gestion-des-realm-role--user-dans-keycloak)
 * [Configuration des variables](#configuration-des-variables)
     * [Paramètres généraux](#paramètres-généraux)
+    * [Configuration Redis](#configuration-redis)
     * [Logs](#logs)
     * [Métriques et santé](#métriques-et-santé)
     * [Configuration de la base de données](#configuration-de-la-base-de-données)
@@ -30,7 +31,8 @@
 * [Information](#information)
 
 Ce projet met en œuvre une solution de gestion des utilisateurs et des autorisations en utilisant **Keycloak**
-conjointement avec **PostgreSQL**. Il s'agit d'une implémentation déployée via **Docker Swarm** pour gérer l'authentification et
+conjointement avec **PostgreSQL** et **Redis**. Il s'agit d'une implémentation déployée via **Docker Swarm** pour gérer
+l'authentification et
 l'autorisation dans vos applications, en s'appuyant sur les standards **OpenID Connect** et **OAuth2**.
 
 ## Technologies utilisées
@@ -47,117 +49,146 @@ Keycloak permet une intégration facile avec vos applications grâce à ses conn
 
 ### PostgreSQL
 
-La base de données **PostgreSQL** est utilisée comme système de gestion des données pour Keycloak. Elle stocke de
-manière fiable les informations essentielles, telles que :
+PostgreSQL est utilisé comme base de données relationnelle pour stocker les informations d'authentification et d'
+autorisation de Keycloak.
 
-- Les utilisateurs et leurs métadonnées.
-- Les clients (applications).
-- Les rôles et les permissions.
+- **Version utilisée** : PostgreSQL 15
+- **Rôle** : Stockage persistent des utilisateurs, rôles, permissions et configurations Keycloak
+- **Configuration** : Optimisée pour les performances et la sécurité
 
-L'utilisation de PostgreSQL garantit une haute performance et une persistance fiable des données pour Keycloak.
+### Redis
+
+Redis est configuré comme un cache haute performance avec persistance optionnelle pour améliorer les performances de
+l'application.
+
+- **Version utilisée** : Redis 7-alpine
+- **Rôle** : Cache en mémoire, stockage de sessions, files d'attente
+- **Configuration** : Sécurisé avec authentification et limites mémoire
+
+### Redis
+
+Redis est configuré comme un cache haute performance avec persistance optionnelle pour améliorer les performances de
+l'application.
+
+- **Version utilisée** : Redis 7-alpine
+- **Rôle** : Cache en mémoire, stockage de sessions, files d'attente
+- **Configuration** : Sécurisé avec authentification et limites mémoire
 
 ### Docker Swarm
 
-**Docker Swarm** est utilisé pour l'orchestration des conteneurs, permettant :
+Docker Swarm est utilisé comme orchestrateur pour gérer le déploiement des services en haute disponibilité :
 
-- Le déploiement en haute disponibilité
-- La gestion automatique des services
-- La scalabilité horizontale
-- La gestion des réseaux overlay pour la communication inter-services
-
----
+- **Mode cluster** : Permet la répartition des services sur plusieurs nœuds
+- **Réseau overlay** : Communication sécurisée entre les services
+- **Placement constraints** : Contrôle précis du déploiement des services
+- **Auto-recovery** : Redémarrage automatique en cas de panne
 
 ## Scripts de Gestion
 
-Le projet fournit plusieurs scripts pour gérer le déploiement de l'infrastructure Keycloak et PostgreSQL via Docker Swarm.
+### Les Scripts de Déploiement
 
-### Scripts de Développement
+#### Environnement de développement
 
-- **./script/create-network.sh** : Crée le réseau overlay Docker nécessaire pour la communication inter-services
-- **./script/deploy-dev.sh** : Déploie l'environnement de développement complet
-- **./script/stop-dev.sh** : Arrête l'environnement de développement sans supprimer les volumes
-- **./script/wait-for-it.sh** : Script d'attente pour s'assurer que PostgreSQL est prêt avant le démarrage de Keycloak
+- **`script/deploy-dev.sh`** : Script principal de déploiement pour l'environnement de développement
+    - Déploie Redis, PostgreSQL et Keycloak sur Docker Swarm
+    - Configure le réseau overlay automatiquement
+    - Vérifie la santé des services après déploiement
+
+- **`script/stop-dev.sh`** : Arrête les stacks de développement sans supprimer les volumes
+    - Préserve les données PostgreSQL et Redis
+    - Permet un redémarrage rapide
+
+#### Environnement NAS/Production
+
+- **`infrastructure/deploy-nas.sh`** : Script de déploiement pour l'infrastructure de production
+    - Vérifie l'état existant avant déploiement
+    - Initialise Docker Swarm si nécessaire
+    - Déploie l'infrastructure complète (Redis, PostgreSQL, Keycloak)
+
+- **`infrastructure/check-infra.sh`** : Vérifie si l'infrastructure est complète et opérationnelle
+    - Contrôle la présence des stacks
+    - Teste la connectivité des services
+    - Retourne un statut pour automatisation
 
 ### Scripts d'Infrastructure
 
-- **./infrastructure/check-infra.sh** : Vérifie que l'infrastructure est complète et opérationnelle. Utilisé dans le Jenkinsfile lors de la stage "Deploy Services"
-- **./infrastructure/deploy-nas.sh** : Déploie l'infrastructure sur le serveur NAS. Utilisé dans le Jenkinsfile lors de la stage "Deploy Services"
-- **./infrastructure/restart-docker-stacks.sh** : Redémarre automatiquement les services Docker Swarm au démarrage du serveur, avec gestion d'attente et logging
+- **`script/create-network.sh`** : Crée le réseau overlay Docker Swarm
+    - Réseau `company_network` pour la communication inter-services
+    - Mode overlay avec option attachable
 
----
+### Script wait-for-it.sh
+
+Le script `wait-for-it.sh` est utilisé dans Keycloak pour attendre que PostgreSQL soit prêt avant de démarrer :
+
+```bash
+./wait-for-it.sh postgres-shared:5432 -- /opt/keycloak/bin/kc.sh start
+```
+
+### En cas de problème d'accès
+
+Si vous ne pouvez pas accéder à Keycloak, vérifiez :
+
+1. **État des services** :
+
+```bash
+docker service ls
+docker service logs <stack-name>_keycloak
+```
+
+2. **Connectivité réseau** :
+
+```bash
+docker network ls
+docker network inspect company_network
+```
+
+3. **Santé des services** :
+
+```bash
+docker service ps <stack-name>_postgres-shared
+docker service ps <stack-name>_redis-shared
+```
 
 ## Environnements
 
-Le projet est organisé avec des environnements séparés pour le développement et la production.
-
 ### Environnement de Développement
 
-L'environnement de développement se trouve dans `environments/dev/` et contient :
+Situé dans `environments/dev/` :
 
-- `.env` : Fichier de configuration des variables d'environnement pour le développement
-- `keycloak-swarm.yml` : Configuration Docker Swarm pour Keycloak en développement
-- `postgresql-swarm.yml` : Configuration Docker Swarm pour PostgreSQL en développement
+- **Configuration** : `.env` avec variables de développement
+- **Services** : Redis, PostgreSQL, Keycloak
+- **Réseau** : Bridge local pour développement rapide
+- **Données** : Volumes locaux, backup facilité
 
 ### Environnement NAS/Production
 
-L'environnement de production se trouve dans `environments/nas/` et contient :
+Situé dans `environments/nas/` :
 
-- `.env` : Fichier de configuration des variables d'environnement pour la production
-- `keycloak-swarm.yml` : Configuration Docker Swarm pour Keycloak en production
-- `postgresql-swarm.yml` : Configuration Docker Swarm pour PostgreSQL en production
-
----
+- **Configuration** : `.env` avec variables de production
+- **Services** : Redis, PostgreSQL, Keycloak avec constraints de placement
+- **Réseau** : Overlay pour distribution multi-nœuds
+- **Données** : Volumes persistants avec sauvegarde automatisée
 
 ## Pipeline CI/CD
 
-Le projet inclut un `Jenkinsfile` pour automatiser le déploiement de l'infrastructure sur le serveur NAS via Jenkins.
+Le fichier `Jenkinsfile` automatise le déploiement sur l'environnement NAS :
 
-Le pipeline permet :
-- La validation de l'infrastructure
-- Le déploiement automatisé sur l'environnement cible
-- La vérification post-déploiement
-
----
-
-## En cas de problème d'accès
-
-Au démarrage le mot de passe et le nom d'utilisateur est: ``admin``
-
-Si vous perdez à nouveau l'accès à votre compte administrateur Keycloak, vous pouvez le recréer facilement en utilisant
-cette commande depuis le terminal du conteneur :
-
-````shell
-# Se connecter au conteneur Keycloak dans Docker Swarm
-docker exec -ti $(docker ps -q -f "name=keycloak") bash
-````
-
-````shell
-# La commande de réinitialisation
-/opt/keycloak/bin/kc.sh bootstrap-admin user
-````
-
-Cette commande vous demandera de saisir un nom d'utilisateur et un mot de passe, puis créera un utilisateur
-administrateur temporaire avec les privilèges complets dans le realm master.
-
-C'est la méthode officielle et la plus sûre pour récupérer l'accès administrateur, beaucoup plus propre que de manipuler
-directement la base de données.
-
----
+- **Déclenchement** : Push sur branches spécifiques
+- **Étapes** : Vérification, déploiement, tests de santé
+- **Notifications** : Statut de déploiement
+- **Rollback** : En cas d'échec de déploiement
 
 ## Backup postgreSQL
 
-Commande docker pour faire un backup de la base de données `kc_db` avec l'utilisateur `max_admin` vers le dossier
-`./postgres_home/backups/` dans le fichier sql `backup-Test.sql`
+Pour sauvegarder PostgreSQL dans l'environnement Docker Swarm :
 
-```shell
-# Pour un conteneur classique
-docker exec postgres-kc pg_dump -U max_admin  kc_db > ./postgres_home/backups/backup-Test.sql
+```bash
+# Sauvegarde manuelle
+docker exec $(docker ps -q -f "name=postgres-shared") pg_dumpall -U keycloak_user > backup_$(date +%Y%m%d).sql
 
-# Pour un service Docker Swarm
-docker exec $(docker ps -q -f "name=postgresql") pg_dump -U max_admin kc_db > ./postgres_home/backups/backup-Test.sql
+# Restauration
+docker exec -i $(docker ps -q -f "name=postgres-shared") psql -U keycloak_user -d keycloak < backup_file.sql
 ```
-
----
 
 ## Gestion des realm role / user dans Keycloak
 
@@ -231,268 +262,251 @@ docker cp $(docker ps -q -f "name=keycloak"):/tmp/ghoverblog-realm.json ./ghover
 docker cp $(docker ps -q -f "name=keycloak"):/tmp/ghoverblog-users-0.json ./ghoverblog-users-0.json
 ```
 
----
-
 ## Configuration des variables
 
-Ce fichier détaille les différentes variables utilisées dans une configuration Keycloak.
+### Paramètres généraux
 
-#### Paramètres généraux
+Les variables d'environnement principales pour chaque environnement :
 
-- **KC_HOSTNAME** : `${HOSTNAME_PROD}`  
-  Le domaine attendu pour Keycloak.
+```bash
+# Stacks Docker Swarm
+PG_STACK_NAME=postgres-stack
+KC_STACK_NAME=keycloak-stack
+REDIS_STACK_NAME=redis-stack
 
-- **KC_HOSTNAME_URL** : `${KEYCLOAK_FRONTEND_URL}`  
-  Définit l'URL externe utilisée par Keycloak pour la génération des liens.
+# Réseau
+COMPANY_NETWORK=company_network
+```
 
-- **KC_PROXY_HEADERS** : `xforwarded`  
-  Configure la gestion des headers de proxy (X-Forwarded-*).
+### Configuration Redis
 
-- **KC_HOSTNAME_STRICT** : `false`  
-  Correspond à `--hostname-strict=false`. Keycloak accepte les requêtes avec différents noms d'hôte (mode debug).
+Redis est configuré comme un cache haute performance avec persistance optionnelle. Voici les principales options de
+configuration utilisées :
 
-- **KC_HOSTNAME_STRICT_HTTPS** : `false`  
-  Désactive la vérification stricte HTTPS pour le hostname.
+#### Paramètres de sécurité et performance
 
-- **KC_COOKIE_SECURE** : `true`  
-  Indique que les cookies sécurisés sont gérés par un proxy comme Nginx.
+```yaml
+command: >
+  redis-server 
+  --requirepass ${REDIS_PASSWORD} 
+  --appendonly yes
+  --maxmemory 1gb
+  --maxmemory-policy allkeys-lru
+```
 
-- **KC_PROXY** : `edge`  
-  Signale que Keycloak est derrière un proxy.
+#### Explication des paramètres
 
-#### Logs
+| Paramètre            | Valeur              | Description                                                                 |
+|----------------------|---------------------|-----------------------------------------------------------------------------|
+| `--requirepass`      | `${REDIS_PASSWORD}` | **Obligatoire** - Mot de passe pour sécuriser l'accès à Redis               |
+| `--appendonly`       | `yes`               | Active la persistance AOF (Append Only File) pour la durabilité des données |
+| `--maxmemory`        | `1gb`               | Limite la mémoire utilisée par Redis à 1 GB                                 |
+| `--maxmemory-policy` | `allkeys-lru`       | Stratégie d'éviction : supprime les clés les moins récemment utilisées      |
 
-- **KC_LOG_CONSOLE_LEVEL** : `info`  
-  Définit le niveau de journalisation de la console (info, debug, warn, error).
+#### Variables d'environnement Redis requises
 
-- **KC_LOG_CONSOLE_COLOR** : `false`  
-  Désactive la coloration des logs dans la console (recommandé en production).
+```bash
+# Configuration Redis
+REDIS_PASSWORD=your_secure_redis_password
+REDIS_PORT=6379
+REDIS_STACK_NAME=redis-stack
+```
 
-#### Métriques et santé
+#### Stratégies d'éviction disponibles
 
-- **KC_HEALTH_ENABLED** : `true`  
-  Active les endpoints de santé pour le monitoring.
+- **allkeys-lru** : Supprime les clés les moins récemment utilisées (recommandé pour un cache)
+- **allkeys-lfu** : Supprime les clés les moins fréquemment utilisées
+- **volatile-lru** : Supprime les clés avec TTL les moins récemment utilisées
+- **volatile-lfu** : Supprime les clés avec TTL les moins fréquemment utilisées
+- **noeviction** : Retourne une erreur quand la mémoire est pleine
 
-- **KC_METRICS_ENABLED** : `true`  
-  Active les métriques pour la surveillance des performances.
+#### Ressources allouées
 
-#### Configuration de la base de données
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 1200mb        # Limite Docker (marge de sécurité)
+    reservations:
+      memory: 256mb         # Mémoire minimum garantie
+```
 
-- **KC_DB** : `postgres`  
-  Définit le type de base de données utilisé (postgres, mysql, etc.).
+La limite Docker (1200MB) est légèrement supérieure à la limite Redis (1GB) pour permettre les métadonnées système et
+éviter les erreurs OOM (Out of Memory).
 
-- **KC_DB_URL** : `jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}`  
-  URL de connexion pour la base de données PostgreSQL avec le nom du service Docker Swarm.
+#### Healthcheck Redis
 
-- **KC_DB_USERNAME** : `${USER_BD}`  
-  Nom d'utilisateur pour la connexion à la base de données.
+Redis est configuré avec un healthcheck utilisant la commande `PING` :
 
-- **KC_DB_PASSWORD** : `${PSW_DB}`  
-  Mot de passe pour la connexion à la base de données.
+```yaml
+healthcheck:
+  test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+```
 
-#### Utilisateur administrateur temporaire
+#### Cas d'usage recommandés
 
-- **KC_BOOTSTRAP_ADMIN_USERNAME** : `${KEYCLOAK_ADMIN}`  
-  Nom d'utilisateur pour l'initialisation de l'administrateur.
+- **Cache de session** : Stockage rapide des sessions utilisateur
+- **Cache applicatif** : Mise en cache des données fréquemment consultées
+- **Files d'attente** : Traitement asynchrone des tâches
+- **Compteurs** : Statistiques temps réel et métriques
 
-- **KC_BOOTSTRAP_ADMIN_PASSWORD** : `${KEYCLOAK_ADMIN_PASSWORD}`  
-  Mot de passe pour l'initialisation de l'administrateur.
+### Logs
 
-#### Configuration de la JVM
+Configuration des logs pour chaque environnement :
 
-- **JAVA_OPTS_APPEND** : `"-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"`  
-  Ajoute des options à la JVM pour ajuster ses performances et configuration :
-    - `-XX:MaxRAMPercentage=75` : Limite l'utilisation mémoire à 75% de la RAM disponible
-    - `-Dkeycloak.profile=production` : Active le profil de production Keycloak
-    - `-Dquarkus.log.console.output=colored` : Active la coloration des logs Quarkus
+```bash
+# Niveau de log (dev: debug, prod: info)
+KC_LOG_CONSOLE_LEVEL=info
+```
 
-#### Tableau de comparaison Dev vs Prod
+### Métriques et santé
 
-| **Paramètre**                | **Dev**                        | **Prod**                                   |
-|------------------------------|--------------------------------|--------------------------------------------|
-| `KC_HOSTNAME`                | `${KEYCLOAK_FRONTEND_URL_DEV}` | `${HOSTNAME_PROD}`                        |
-| `KC_HOSTNAME_URL`            | _(non défini)_                 | `${KEYCLOAK_FRONTEND_URL}`                |
-| `KC_PROXY_HEADERS`           | _(non défini)_                 | `xforwarded`                              |
-| `KC_HOSTNAME_STRICT`         | `false`                        | `false`                                   |
-| `KC_HOSTNAME_STRICT_HTTPS`   | _(non défini)_                 | `false`                                   |
-| `KC_COOKIE_SECURE`           | `false`                        | `true`                                    |
-| `KC_PROXY`                   | _(non défini)_                 | `edge`                                    |
-| `KC_LOG_CONSOLE_LEVEL`       | `info`                         | `info`                                    |
-| `KC_LOG_CONSOLE_COLOR`       | `true`                         | `false`                                   |
-| `KC_HEALTH_ENABLED`          | `true`                         | `true`                                    |
-| `KC_METRICS_ENABLED`         | `true`                         | `true`                                    |
-| `KC_DB_URL`                  | `postgres:5432/kc_db`          | `postgres-stack_postgres-shared:5432/...` |
-| `JAVA_OPTS_APPEND`           | `"-XX:MaxRAMPercentage=65"`    | `"-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"` |
+Configuration du monitoring :
 
-#### Option configure la JVM
+```bash
+KC_HEALTH_ENABLED=true      # Endpoints de santé
+KC_METRICS_ENABLED=true     # Métriques Prometheus
+```
 
-1. -XX:MaxRAMPercentage=75
+### Configuration de la base de données
 
-Cette option configure la JVM pour limiter l'utilisation maximale de la mémoire à un pourcentage spécifique de la
-mémoire physique disponible. Dans cet exemple, la JVM utilisera jusqu'à 75 % de la mémoire physique totale. Cette
-approche est particulièrement utile dans des environnements conteneurisés, comme Docker, où la gestion de la mémoire est
-cruciale.
+Variables PostgreSQL communes :
 
-Pour plus de détails, vous pouvez consulter la documentation officielle de la JVM concernant les options de gestion de
-la mémoire.
+```bash
+DB_USER=keycloak_user
+DB_PASSWORD=your_secure_password
+DB_NAME=kc_db
+DB_PORT_EXTERNAL=5499       # Port d'accès externe
+```
 
-2. -Dkeycloak.someOption=value
+### Utilisateur administrateur temporaire
 
-Cette syntaxe définit une propriété système pour la JVM, accessible via System.getProperty("keycloak.someOption") dans
-le code Java. Dans le contexte de Keycloak, cela permet de configurer des paramètres spécifiques en définissant des
-propriétés système. Par exemple, pour activer une fonctionnalité ou définir un comportement particulier, vous pouvez
-utiliser cette méthode.
+Compte admin initial de Keycloak :
 
-Pour plus d'information sur les variables pour la JVM voici une liste de site
+```bash
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=admin_password
+```
 
-- [Keycloak JVM Options](https://www.keycloak.org/keycloak-benchmark/kubernetes-guide/latest/running/jvm/jvm_options)
-- [Eclipse OpenJ9](https://eclipse.dev/openj9/docs/xxinitialrampercentage/)
-- [Best practices for JVM heap size configuration](https://www.alibabacloud.com/help/en/sae/serverless-app-engine-classic/use-cases/best-practices-for-jvm-heap-size-configuration)
-- [Baeldung: Difference Between Xmx and MaxRAM JVM Parameters](https://www.baeldung.com/java-xmx-vs-maxram-jvm)
-- [Baeldung: Guide to the Most Important JVM Parameters](https://www.baeldung.com/jvm-parameters)
+### Configuration de la JVM
 
----
+Optimisation mémoire pour chaque environnement :
+
+```bash
+# Développement
+JAVA_OPTS_APPEND="-XX:MaxRAMPercentage=50 -Dquarkus.log.console.output=colored"
+
+# Production
+JAVA_OPTS_APPEND="-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production"
+```
+
+### Tableau de comparaison Dev vs Prod
+
+| Paramètre    | Développement | Production/NAS             |
+|--------------|---------------|----------------------------|
+| Mémoire JVM  | 50% RAM       | 75% RAM                    |
+| Log Level    | debug         | info                       |
+| HTTPS Strict | false         | true                       |
+| Placement    | Aucun         | node.hostname == BlackHole |
+| Healthcheck  | Basique       | Complet avec retry         |
+
+### Option configure la JVM
+
+Options JVM recommandées par environnement :
+
+- **MaxRAMPercentage** : Pourcentage de RAM allouée à la JVM
+- **Profile** : `development` ou `production`
+- **Log output** : Coloré pour dev, structuré pour prod
 
 ## Structure des fichiers
 
-Le projet contient la structure suivante :
-
 ```
 nas-infrastructur/
-├── Jenkinsfile                          # Pipeline CI/CD pour Jenkins
+├── Jenkinsfile                           # Pipeline CI/CD pour déploiement automatisé
 ├── README.md                            # Documentation du projet
 ├── docker-compose-prod.yml              # Configuration Docker Compose pour production
-├── environments/                        # Configurations par environnement
+├── environments/                        # Configuration par environnement
 │   ├── dev/                            # Environnement de développement
 │   │   ├── .env                        # Variables d'environnement dev
-│   │   ├── keycloak-swarm.yml          # Stack Keycloak pour Docker Swarm
-│   │   └── postgresql-swarm.yml        # Stack PostgreSQL pour Docker Swarm
+│   │   ├── keycloak-swarm.yml          # Configuration Keycloak dev
+│   │   ├── postgresql-swarm.yml        # Configuration PostgreSQL dev
+│   │   └── redis-swarm.yml             # Configuration Redis dev
 │   └── nas/                            # Environnement NAS/Production
-│       ├── .env                        # Variables d'environnement production
-│       ├── keycloak-swarm.yml          # Stack Keycloak pour Docker Swarm
-│       └── postgresql-swarm.yml        # Stack PostgreSQL pour Docker Swarm
+│       ├── .env                        # Variables d'environnement prod
+│       ├── keycloak-swarm.yml          # Configuration Keycloak prod
+│       ├── postgresql-swarm.yml        # Configuration PostgreSQL prod
+│       └── redis-swarm.yml             # Configuration Redis prod
 ├── infrastructure/                      # Scripts d'infrastructure
 │   ├── check-infra.sh                  # Vérification de l'infrastructure
-│   ├── deploy-nas.sh                   # Déploiement sur serveur NAS
-│   └── restart-docker-stacks.sh        # Script de redémarrage automatique
-├── keycloak_home/                       # Configuration Keycloak
-│   └── config/
+│   └── deploy-nas.sh                   # Déploiement infrastructure NAS
+├── keycloak_home/                      # Configuration et données Keycloak
+│   └── config/                         # Fichiers de configuration
 │       ├── ghoverblog-realm.json       # Configuration du realm
-│       └── ghoverblog-users.json       # Utilisateurs du realm
-├── postgres_home/                       # Données PostgreSQL
+│       └── ghoverblog-users.json       # Utilisateurs de test
+├── postgres_home/                      # Configuration et données PostgreSQL
 │   ├── backups/                        # Sauvegardes de la base
-│   │   └── backup-Test.sql
+│   │   └── backup-Test.sql             # Sauvegarde de test
 │   └── init/                           # Scripts d'initialisation
-│       ├── 00_base_ghoverblog.sql
-│       └── ms_article_backup.sql
-└── script/                             # Scripts de gestion
-    ├── create-network.sh               # Création du réseau overlay
+│       ├── 00_base_ghoverblog.sql      # Structure de base
+│       └── ms_article_backup.sql       # Données d'exemple
+└── script/                             # Scripts utilitaires
+    ├── create-network.sh               # Création réseau overlay
     ├── deploy-dev.sh                   # Déploiement environnement dev
     ├── stop-dev.sh                     # Arrêt environnement dev
-    └── wait-for-it.sh                  # Script d'attente PostgreSQL
+    └── wait-for-it.sh                  # Attente de service
 ```
-
-### `ghoverblog-realm.json`
-
-Ce fichier contient la configuration complète d'un **realm** nommé `ghoverblog`. Un **realm** dans Keycloak est un
-espace de gestion des utilisateurs, des clients (applications), des rôles et des paramètres d'authentification.
-
-#### Utilité :
-
-- Permet de réimporter rapidement une configuration prédéfinie pour un realm spécifique.
-- Contient des informations telles que :
-    - Les clients configurés (applications utilisant Keycloak).
-    - Les rôles définis.
-    - Les paramètres de connexion.
-
-### `ghoverblog-user.json`
-
-Ce fichier contient une liste d'utilisateurs préconfigurés avec leurs rôles, groupes et autres paramètres associés.
-
-#### Utilité :
-
-- Facilite la création d'un ensemble d'utilisateurs de test ou de production.
-- Inclut des informations telles que :
-    - Les identifiants utilisateur.
-    - Les mots de passe (cryptés).
-    - Les rôles attribués à chaque utilisateur.
-
-Ces fichiers peuvent être importés directement dans Keycloak pour initialiser la configuration et les utilisateurs
-nécessaires à votre projet.
-
----
 
 ## Gestion des Themes Keycloak
 
-Exemple de structure
+Si vous voulez modifier l'apparence de Keycloak, vous pouvez créer ou utiliser des thèmes personnalisés.
 
-```plaintext
-ghoverblog/
-├── login/
-│   ├── theme.properties
-│   ├── templates/
-│   │   ├── login.ftl
-│   │   ├── register.ftl
-│   │   └── (autres fichiers .ftl)
-│   └── resources/
-│       ├── css/
-│       │   └── login.css
-│       ├── img/
-│       │   └── logo.png
-├── account/
-│   ├── theme.properties
-│   ├── templates/
-│   │   ├── account.ftl
-│   │   └── (autres fichiers)
-│   └── resources/
-│       ├── css/
-│       │   └── account.css
-│       ├── img/
-│       │   └── profile-picture.png
-├── admin/
-│   ├── theme.properties
-│   ├── templates/
-│   │   └── admin.ftl
-│   └── resources/
-│       ├── css/
-│       └── js/
-├── email/
-│   ├── theme.properties
-│   └── templates/
-│       ├── email-verification.ftl
-│       └── (autres fichiers d'email)
+### Structure des thèmes
+
+Les thèmes Keycloak suivent une structure spécifique :
+
+```
+themes/
+└── nom-du-theme/
+    ├── login/           # Pages de connexion
+    ├── account/         # Pages de gestion de compte
+    └── admin/           # Interface d'administration
 ```
 
-- `Structure et Logique des Thèmes`
-  Un thème Keycloak est organisé en sous-dossiers spécifiques pour chaque domaine d'application. Keycloak détecte
-  automatiquement ces domaines grâce à leur nom de dossier. Les noms de ces dossiers sont standardisés dans Keycloak :
+### Utilisation d'un thème
 
-`login` : Contient les templates et ressources pour les pages de connexion.
-`account` : Pour le portail "Mon compte".
-`admin` : Pour l'interface d'administration.
-`email` : Pour les modèles d'email personnalisés.
-
----
+1. **Placer le thème** dans un volume monté : `/opt/keycloak/themes/`
+2. **Configurer dans l'admin** : Realm Settings > Themes
+3. **Appliquer** : Sélectionner le thème pour Login, Account, etc.
 
 ## Information
 
 1. Keycloak
 
-* Information sur [keycloak](https://www.keycloak.org/) le gestionnaire d'authentification
-* Les variables d'environnements de base, voir le [docker hub](https://hub.docker.com/r/keycloak/keycloak/tags)
-* Le dépôt ``Red hat`` de l'image basé sur Quarkus [RED HAT Quay.io](https://quay.io/repository/keycloak/keycloak)
+* Documentation
+  officielle [Keycloak](https://www.keycloak.org/guides#getting-started](https://www.keycloak.org/guides#getting-started)
+* La [documentation](https://www.keycloak.org/documentation) de ce projet
+* La version de ce
+  projet [keycloak:26.0](https://quay.io/repository/keycloak/keycloak?tab=tags&tag=26.0)
 
 2. PostgreSQL
 
-* Tutoriel sur [postgres](#https://www.postgresqltutorial.com/)
-* La documentation de ce projet , voir le [docker hub](https://hub.docker.com/_/postgres)
-* La version de ce
-  projet [postgres:15.2-bullseye](https://hub.docker.com/layers/library/postgres/15.2-bullseye/images/sha256-6b91d38a9c596fa4e6a1276f6f81810882d9f292a09f9cf2647c6a554c8b6d00?context=explore)
+* Tutoriel sur [postgres](https://www.postgresqltutorial.com/)
+* La documentation de ce projet, voir le [docker hub](https://hub.docker.com/_/postgres)
+* La version de ce projet [postgres:17-alpine](https://hub.docker.com/_/postgres/tags?page=1&name=17-alpine)
 
-3. Docker Swarm
+3. Redis
+
+* Documentation officielle [Redis](https://redis.io/documentation)
+* Guide des commandes [Redis Commands](https://redis.io/commands)
+* La version de ce projet [redis:7-alpine](https://hub.docker.com/_/redis/tags?page=1&name=7-alpine)
+
+4. Docker Swarm
 
 * Documentation officielle [Docker Swarm](https://docs.docker.com/engine/swarm/)
 * Guide des [Docker Stack](https://docs.docker.com/engine/reference/commandline/stack/)
 
-4. Other
+5. Other
     * Le planificateur de [tâches crontab](https://www.linuxtricks.fr/wiki/cron-et-crontab-le-planificateur-de-taches)
