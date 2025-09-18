@@ -22,7 +22,7 @@ pipeline {
                 script {
                     withCredentials([
                             sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY'),
-                            string(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
+                            file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
                     ]) {
                         sh '''
                             echo "=== CHARGEMENT DES VARIABLES ==="
@@ -92,7 +92,7 @@ pipeline {
                 script {
                     withCredentials([
                             sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY'),
-                            string(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
+                            file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
                     ]) {
                         sh '''
                             echo "=== CHARGEMENT DES VARIABLES ==="
@@ -134,7 +134,7 @@ pipeline {
                 script {
                     withCredentials([
                             sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY'),
-                            string(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
+                            file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
                     ]) {
                         sh '''
                             echo "=== CHARGEMENT DES VARIABLES ==="
