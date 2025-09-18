@@ -6,25 +6,23 @@ services:
     image: quay.io/keycloak/keycloak:26.0
     environment:
       # Configuration hostname
-      KC_HOSTNAME: "${HOSTNAME_PROD}"
-      KC_HOSTNAME_URL: "${KEYCLOAK_FRONTEND_URL}"
-      KC_PROXY_HEADERS: "xforwarded"
-      KC_HOSTNAME_STRICT: "false"  # temporairement pour debug
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_COOKIE_SECURE: "true"    # Remettez true
-      KC_PROXY: "edge"
-      KC_LOG_CONSOLE_LEVEL: info
-      KC_LOG_CONSOLE_COLOR: "false"
+      KC_HOSTNAME: "${HOSTNAME_PROD}"  # keycloak.backhole.ovh
+      KC_HOSTNAME_STRICT: "false"
+      KC_COOKIE_SECURE: "true"
+      KC_PROXY: "edge"  # Indique un proxy externe comme Nginx
+      KC_PROXY_HEADERS: "xforwarded"  # Utilise les en-têtes X-Forwarded-* pour le proxy
+      KC_LOG_CONSOLE_LEVEL: "info"
+      KC_LOG_CONSOLE_COLOR: "false"  # Conservé pour compatibilité
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
 
       # Configuration base de données
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}
-      KC_DB_USERNAME: ${USER_BD}
-      KC_DB_PASSWORD: ${PSW_DB}
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: "postgres"
+      KC_DB_URL: "jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}"
+      KC_DB_USERNAME: "${USER_BD}"
+      KC_DB_PASSWORD: "${PSW_DB}"
+      KC_BOOTSTRAP_ADMIN_USERNAME: "${KEYCLOAK_ADMIN}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
 
       # Configuration JVM
       JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"
