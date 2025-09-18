@@ -6,7 +6,6 @@ pipeline {
         NAS_KEY = credentials('NAS_KEY')
         PSW_DB = credentials('PSW_DB')
         REDIS_PASSWORD = credentials('REDIS_PASSWORD')
-        DB_PASSWORD_SECRET = credentials('DB_PASSWORD_SECRET')
         NAS_USER = credentials('NAS_USER')
         NAS_HOST = credentials('IP_NAS')
 
