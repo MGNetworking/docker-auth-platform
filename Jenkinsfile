@@ -5,6 +5,7 @@ pipeline {
         // Credentials pour le serveur NAS
         NAS_KEY = credentials('NAS_KEY')
         PSW_DB = credentials('PSW_DB')
+        USER_BD = credentials('USER_BD')
         REDIS_PASSWORD = credentials('REDIS_PASSWORD')
         NAS_USER = credentials('NAS_USER')
         NAS_HOST = credentials('IP_NAS')
@@ -99,6 +100,7 @@ pipeline {
                             ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} \
                                 "export PSW_DB='${PSW_DB}' && \
                                  export REDIS_PASSWORD='${REDIS_PASSWORD}' && \
+                                 export USER_BD='${USER_BD}' && \
                                  cd /volume1/docker/keycloak-infrastructure && \
                                  ./infrastructure/deploy-nas.sh"
                             
