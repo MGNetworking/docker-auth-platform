@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  redis:
+  redis-shared:
     image: redis:7-alpine
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
