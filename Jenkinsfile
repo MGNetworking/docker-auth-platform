@@ -4,7 +4,14 @@ pipeline {
     environment {
         // Credentials pour le serveur NAS
         NAS_KEY = credentials('NAS_KEY')
-        NAS_CONFIG = credentials('nas-config')
+        PSW_DB = credentials('PSW_DB')
+        REDIS_PASSWORD = credentials('REDIS_PASSWORD')
+        DB_PASSWORD_SECRET = credentials('DB_PASSWORD_SECRET')
+        NAS_USER = credentials('NAS_USER')
+        NAS_HOST = credentials('IP_NAS')
+
+        NAS_PORT_SSH = credentials('NAS_PORT_SSH')
+        NAS_PORT_SFTP = credentials('NAS_PORT_SFTP')
 
         // Variables pour traçabilité
         GIT_TAG = sh(script: "git describe --tags --always", returnStdout: true).trim()
@@ -21,16 +28,9 @@ pipeline {
                 echo "Création de l'infrastructure sur le serveur NAS..."
                 script {
                     withCredentials([
-                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY'),
-                            file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
+                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY')
                     ]) {
-                        sh '''
-                            echo "=== CHARGEMENT DES VARIABLES ==="
-                            # Charger les variables depuis le fichier temporaire
-                            set -a
-                            . $CONFIG_FILE
-                            set +a
-                            
+                        sh '''                           
                             echo "=== PRÉPARATION DU PACKAGE ==="
                             
                             # Créer le package avec tous les fichiers
@@ -53,7 +53,7 @@ pipeline {
                             echo "=== CRÉATION INFRASTRUCTURE SUR LE NAS ==="
                             
                             # Créer la structure sur le NAS
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER_SERVER}@${NAS_IP_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} "
                                 mkdir -p /volume1/docker/keycloak-infrastructure \
                                 mkdir -p /volume1/docker/keycloak-infrastructure/environments/nas \
                                 mkdir -p /volume1/docker/keycloak-infrastructure/infrastructure \
@@ -63,12 +63,12 @@ pipeline {
                             
                             # Transférer tous les fichiers
                             scp -o StrictHostKeyChecking=no -i $SSH_KEY -P ${NAS_PORT_SFTP} -r node/* \
-                                ${NAS_USER_SERVER}@${NAS_IP_SERVER}:docker/keycloak-infrastructure/
+                                ${NAS_USER}@${NAS_HOST}:docker/keycloak-infrastructure/
                             
                             echo "=== VÉRIFICATION INFRASTRUCTURE ==="
                             
                             # Vérifier que l'infrastructure est créée
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER_SERVER}@${NAS_IP_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} "
                                 echo 'Infrastructure créée:'
                                 ls -la /volume1/docker/keycloak-infrastructure/
                                 echo 'Scripts disponibles:'
@@ -95,19 +95,14 @@ pipeline {
                             file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
                     ]) {
                         sh '''
-                            echo "=== CHARGEMENT DES VARIABLES ==="
-                            # Charger les variables depuis le fichier temporaire
-                            set -a
-                            . $CONFIG_FILE
-                            set +a
-                            
                             echo "=== LANCEMENT DU DÉPLOIEMENT ==="
                             
                             # Exécuter le script de déploiement Docker
                             ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} \
-                                "set -a && . - && set +a && \
+                                "export PSW_DB='${PSW_DB}' && \
+                                 export REDIS_PASSWORD='${REDIS_PASSWORD}' && \
                                  cd /volume1/docker/keycloak-infrastructure && \
-                                 ./infrastructure/deploy-nas.sh" < $CONFIG_FILE
+                                 ./infrastructure/deploy-nas.sh"
                             
                             # 0 → succès et >0 → échec ou erreur
                             
@@ -137,15 +132,9 @@ pipeline {
                             file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
                     ]) {
                         sh '''
-                            echo "=== CHARGEMENT DES VARIABLES ==="
-                            # Charger les variables depuis le fichier temporaire
-                            set -a
-                            . $CONFIG_FILE
-                            set +a
-                            
                             echo "=== VÉRIFICATION DES SERVICES DOCKER ==="
                             
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER_SERVER}@${NAS_IP_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} "
                                 echo '--- Stacks déployées ---'
                                 docker stack ls
                                 
