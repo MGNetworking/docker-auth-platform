@@ -90,8 +90,7 @@ pipeline {
                 echo "Déploiement des services Docker..."
                 script {
                     withCredentials([
-                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY'),
-                            file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
+                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY')
                     ]) {
                         sh '''
                             echo "=== LANCEMENT DU DÉPLOIEMENT ==="
@@ -127,8 +126,7 @@ pipeline {
                 echo "Vérification que les services Docker sont en cours d'exécution..."
                 script {
                     withCredentials([
-                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY'),
-                            file(credentialsId: 'nas-config', variable: 'CONFIG_FILE')
+                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY')
                     ]) {
                         sh '''
                             echo "=== VÉRIFICATION DES SERVICES DOCKER ==="
