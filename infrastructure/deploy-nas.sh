@@ -41,7 +41,7 @@ echo "  PG_STACK_NAME: $PG_STACK_NAME"
 echo "  KC_STACK_NAME: $KC_STACK_NAME"
 echo "  REDIS_STACK_NAME: $REDIS_STACK_NAME"
 echo "  DB_USER: $DB_USER"
-echo "  KEYCLOAK_HOSTNAME: $KEYCLOAK_HOSTNAME"
+echo "  KEYCLOAK_HOSTNAME: $HOSTNAME_PROD"
 
 # Étape 1: Vérifier l'état actuel
 echo ""
