@@ -5,21 +5,22 @@ services:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:26.0
     environment:
-      KC_HOSTNAME: "${KEYCLOAK_FRONTEND_URL}"
-      KC_HTTP_HOST: "0.0.0.0"
+      KC_HOSTNAME: "${KEYCLOAK_URL}:${KEYCLOAK_PORT}"
       KC_HOSTNAME_STRICT: "false"
-      KC_COOKIE_SAME_SITE: None
       KC_COOKIE_SECURE: "false"
-      KC_LOG_CONSOLE_LEVEL: info
+      KC_HTTP_HOST: "0.0.0.0"
+      KC_LOG_CONSOLE_LEVEL: "info"
       KC_LOG_CONSOLE_COLOR: "true"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}
-      KC_DB_USERNAME: ${USER_BD}
-      KC_DB_PASSWORD: ${PSW_DB}
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+
+      # Configuration base de données
+      KC_DB: "postgres"
+      KC_DB_URL: "jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}"
+      KC_DB_USERNAME: "${USER_BD}"
+      KC_DB_PASSWORD: "${PSW_DB}"
+      KC_BOOTSTRAP_ADMIN_USERNAME: "${KEYCLOAK_ADMIN}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
       JAVA_OPTS_APPEND: "-Dkeycloak.someOption=value -XX:MaxRAMPercentage=65"
     volumes:
       - ../../script/wait-for-it.sh:/wait-for-it.sh

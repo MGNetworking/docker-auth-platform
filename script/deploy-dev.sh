@@ -65,7 +65,7 @@ if [ -f "${ENV_DIR}/redis-swarm.yml" ]; then
 
     # Vérifier que Redis est prêt
     timeout 60s bash -c '
-        until docker service logs ${REDIS_STACK_NAME}_redis 2>&1 | grep -q "Ready to accept connections"; do
+        until docker service logs ${REDIS_STACK_NAME}_redis-shared 2>&1 | grep -q "Ready to accept connections"; do
             echo "   Redis en cours de démarrage..."
             sleep 5
         done
@@ -155,12 +155,12 @@ echo ""
 echo "Commandes utiles :"
 echo "   docker stack ls"
 echo "   docker service ls"
-echo "   docker service logs ${REDIS_STACK_NAME}_redis"
+echo "   docker service logs ${REDIS_STACK_NAME}_redis-shared"
 echo "   docker service logs ${PG_STACK_NAME}_postgres-shared"
 echo "   docker service logs ${KC_STACK_NAME}_keycloak"
 echo ""
 echo "Pour les logs :"
-echo "   docker service logs ${REDIS_STACK_NAME}_redis"
+echo "   docker service logs ${REDIS_STACK_NAME}_redis-shared"
 echo "   docker service logs ${PG_STACK_NAME}_postgres-shared"
 echo "   docker service logs ${KC_STACK_NAME}_keycloak"
 echo "Pour arrêter :"
