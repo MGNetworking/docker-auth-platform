@@ -3,8 +3,15 @@ pipeline {
 
     environment {
         // Credentials pour le serveur NAS
-        NAS_KEY = credentials('NAS_KEY') // TODO
-        NAS_SERVER = '192.168.1.56'
+        NAS_KEY = credentials('NAS_KEY')
+        PSW_DB = credentials('PSW_DB')
+        USER_BD = credentials('USER_BD')
+        REDIS_PASSWORD = credentials('REDIS_PASSWORD')
+        NAS_USER = credentials('NAS_USER')
+        NAS_HOST = credentials('IP_NAS')
+
+        NAS_PORT_SSH = credentials('NAS_PORT_SSH')
+        NAS_PORT_SFTP = credentials('NAS_PORT_SFTP')
 
         // Variables pour traçabilité
         GIT_TAG = sh(script: "git describe --tags --always", returnStdout: true).trim()
@@ -20,46 +27,48 @@ pipeline {
             steps {
                 echo "Création de l'infrastructure sur le serveur NAS..."
                 script {
-                    withCredentials([sshUserPrivateKey(
-                            credentialsId: 'NAS_KEY',
-                            keyFileVariable: 'SSH_KEY',
-                            usernameVariable: 'SSH_USER'
-                    )]) {
-                        sh '''
+                    withCredentials([
+                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY')
+                    ]) {
+                        sh '''                           
                             echo "=== PRÉPARATION DU PACKAGE ==="
                             
                             # Créer le package avec tous les fichiers
-                            mkdir -p deployment-package/environments/nas
-                            mkdir -p deployment-package/infrastructure
-                            mkdir -p deployment-package/scripts
-                            mkdir -p deployment-package/postgres_home
+                            mkdir -p node/environments/nas
+                            mkdir -p node/infrastructure
+                            mkdir -p node/scripts
+                            mkdir -p node/postgres_home
                             
                             # Copier tous les fichiers nécessaires
-                            cp environments/nas/*.yml deployment-package/environments/nas/
-                            cp environments/nas/.env deployment-package/environments/nas/
-                            cp infrastructure/*.sh deployment-package/infrastructure/
-                            cp scripts/*.sh deployment-package/scripts/
-                            cp -r postgres_home/* deployment-package/postgres_home/ 2>/dev/null || true
+                            cp environments/nas/*.yml node/environments/nas/
+                            cp environments/nas/.env node/environments/nas/
+                            cp infrastructure/*.sh node/infrastructure/
+                            cp script/*.sh node/scripts/
+                            cp -r postgres_home/* node/postgres_home/ 2>/dev/null || true
                             
                             # Rendre les scripts exécutables
-                            chmod +x deployment-package/infrastructure/*.sh
-                            chmod +x deployment-package/scripts/*.sh
+                            chmod +x node/infrastructure/*.sh
+                            chmod +x node/scripts/*.sh
                             
                             echo "=== CRÉATION INFRASTRUCTURE SUR LE NAS ==="
                             
                             # Créer la structure sur le NAS
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} "
-                                mkdir -p /volume1/docker/keycloak-infrastructure
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} "
+                                mkdir -p /volume1/docker/keycloak-infrastructure \
+                                mkdir -p /volume1/docker/keycloak-infrastructure/environments/nas \
+                                mkdir -p /volume1/docker/keycloak-infrastructure/infrastructure \
+                                mkdir -p /volume1/docker/keycloak-infrastructure/scripts \
+                                mkdir -p /volume1/docker/keycloak-infrastructure/postgres_home
                             "
                             
                             # Transférer tous les fichiers
-                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -r deployment-package/* \
-                                $SSH_USER@${NAS_SERVER}:/volume1/docker/keycloak-infrastructure/
+                            scp -o StrictHostKeyChecking=no -i $SSH_KEY -P ${NAS_PORT_SFTP} -r node/* \
+                                ${NAS_USER}@${NAS_HOST}:docker/keycloak-infrastructure/
                             
                             echo "=== VÉRIFICATION INFRASTRUCTURE ==="
                             
                             # Vérifier que l'infrastructure est créée
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} "
                                 echo 'Infrastructure créée:'
                                 ls -la /volume1/docker/keycloak-infrastructure/
                                 echo 'Scripts disponibles:'
@@ -81,20 +90,23 @@ pipeline {
             steps {
                 echo "Déploiement des services Docker..."
                 script {
-                    withCredentials([sshUserPrivateKey(
-                            credentialsId: 'NAS_KEY',
-                            keyFileVariable: 'SSH_KEY',
-                            usernameVariable: 'SSH_USER'
-                    )]) {
+                    withCredentials([
+                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY')
+                    ]) {
                         sh '''
                             echo "=== LANCEMENT DU DÉPLOIEMENT ==="
                             
                             # Exécuter le script de déploiement Docker
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} \
-                                "cd /volume1/docker/keycloak-infrastructure && ./infrastructure/deploy-infra.sh"
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} \
+                                "export PSW_DB='${PSW_DB}' && \
+                                 export REDIS_PASSWORD='${REDIS_PASSWORD}' && \
+                                 export USER_BD='${USER_BD}' && \
+                                 cd /volume1/docker/keycloak-infrastructure && \
+                                 ./infrastructure/deploy-nas.sh"
+                            
+                            # 0 → succès et >0 → échec ou erreur
                             
                             DEPLOY_STATUS=$?
-                            
                             if [ $DEPLOY_STATUS -eq 0 ]; then
                                 echo "=== DÉPLOIEMENT TERMINÉ ==="
                             else
@@ -115,15 +127,13 @@ pipeline {
             steps {
                 echo "Vérification que les services Docker sont en cours d'exécution..."
                 script {
-                    withCredentials([sshUserPrivateKey(
-                            credentialsId: 'NAS_KEY',
-                            keyFileVariable: 'SSH_KEY',
-                            usernameVariable: 'SSH_USER'
-                    )]) {
+                    withCredentials([
+                            sshUserPrivateKey(credentialsId: 'NAS_KEY', keyFileVariable: 'SSH_KEY')
+                    ]) {
                         sh '''
                             echo "=== VÉRIFICATION DES SERVICES DOCKER ==="
                             
-                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@${NAS_SERVER} "
+                            ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} "
                                 echo '--- Stacks déployées ---'
                                 docker stack ls
                                 
