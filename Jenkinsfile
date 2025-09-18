@@ -28,7 +28,7 @@ pipeline {
                             echo "=== CHARGEMENT DES VARIABLES ==="
                             # Charger les variables depuis le fichier temporaire
                             set -a
-                            source $CONFIG_FILE
+                            . $CONFIG_FILE
                             set +a
                             
                             echo "=== PRÉPARATION DU PACKAGE ==="
@@ -98,14 +98,14 @@ pipeline {
                             echo "=== CHARGEMENT DES VARIABLES ==="
                             # Charger les variables depuis le fichier temporaire
                             set -a
-                            source $CONFIG_FILE
+                            . $CONFIG_FILE
                             set +a
                             
                             echo "=== LANCEMENT DU DÉPLOIEMENT ==="
                             
                             # Exécuter le script de déploiement Docker
                             ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} \
-                                "set -a && source - && set +a && \
+                                "set -a && . - && set +a && \
                                  cd /volume1/docker/keycloak-infrastructure && \
                                  ./infrastructure/deploy-nas.sh" < $CONFIG_FILE
                             
@@ -140,7 +140,7 @@ pipeline {
                             echo "=== CHARGEMENT DES VARIABLES ==="
                             # Charger les variables depuis le fichier temporaire
                             set -a
-                            source $CONFIG_FILE
+                            . $CONFIG_FILE
                             set +a
                             
                             echo "=== VÉRIFICATION DES SERVICES DOCKER ==="
