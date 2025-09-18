@@ -2,17 +2,16 @@ version: "3.8"
 
 services:
   keycloak:
-    container_name: keycloak
     image: quay.io/keycloak/keycloak:26.0
     environment:
       # Configuration hostname
-      KC_HOSTNAME: "${HOSTNAME_PROD}"  # keycloak.backhole.ovh
+      KC_HOSTNAME: "${KEYCLOAK_HOSTNAME}"
       KC_HOSTNAME_STRICT: "false"
       KC_COOKIE_SECURE: "true"
       KC_PROXY: "edge"  # Indique un proxy externe comme Nginx
       KC_PROXY_HEADERS: "xforwarded"  # Utilise les en-têtes X-Forwarded-* pour le proxy
       KC_LOG_CONSOLE_LEVEL: "info"
-      KC_LOG_CONSOLE_COLOR: "false"  # Conservé pour compatibilité
+      KC_LOG_CONSOLE_COLOR: "false"
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
 
