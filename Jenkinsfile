@@ -26,13 +26,9 @@ pipeline {
                     ]) {
                         sh '''
                             echo "=== CHARGEMENT DES VARIABLES ==="
-                            
-                            # Créer le fichier .env temporaire
-                            echo "$CONFIG_FILE" > deploy.env
-                            
                             # Charger les variables depuis le fichier temporaire
                             set -a
-                            source deploy.env
+                            source $CONFIG_FILE
                             set +a
                             
                             echo "=== PRÉPARATION DU PACKAGE ==="
@@ -100,13 +96,9 @@ pipeline {
                     ]) {
                         sh '''
                             echo "=== CHARGEMENT DES VARIABLES ==="
-                            
-                            # Créer le fichier .env temporaire
-                            echo "$CONFIG_FILE" > deploy.env
-                            
                             # Charger les variables depuis le fichier temporaire
                             set -a
-                            source deploy.env
+                            source $CONFIG_FILE
                             set +a
                             
                             echo "=== LANCEMENT DU DÉPLOIEMENT ==="
@@ -115,7 +107,7 @@ pipeline {
                             ssh -o StrictHostKeyChecking=no -i $SSH_KEY -p ${NAS_PORT_SSH} ${NAS_USER}@${NAS_HOST} \
                                 "set -a && source - && set +a && \
                                  cd /volume1/docker/keycloak-infrastructure && \
-                                 ./infrastructure/deploy-nas.sh" < deploy.env
+                                 ./infrastructure/deploy-nas.sh" < $CONFIG_FILE
                             
                             # 0 → succès et >0 → échec ou erreur
                             
@@ -146,13 +138,9 @@ pipeline {
                     ]) {
                         sh '''
                             echo "=== CHARGEMENT DES VARIABLES ==="
-                            
-                            # Créer le fichier .env temporaire
-                            echo "$CONFIG_FILE" > deploy.env
-                            
                             # Charger les variables depuis le fichier temporaire
                             set -a
-                            source deploy.env
+                            source $CONFIG_FILE
                             set +a
                             
                             echo "=== VÉRIFICATION DES SERVICES DOCKER ==="
