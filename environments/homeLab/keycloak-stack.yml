@@ -1,15 +1,16 @@
-version: "3.8"
-
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     environment:
-      # Configuration hostname
+      # Hostname externe attendu (celui du navigateur)
       KC_HOSTNAME: "${KEYCLOAK_HOSTNAME}"
       KC_HOSTNAME_STRICT: "false"
-      KC_COOKIE_SECURE: "true"
+
+      # Proxy chain : Internet -> Nginx (TLS) -> Traefik (HTTP) -> Keycloak
       KC_PROXY: "edge"  # Indique un proxy externe comme Nginx
       KC_PROXY_HEADERS: "xforwarded"  # Utilise les en-têtes X-Forwarded-* pour le proxy
+
+      KC_COOKIE_SECURE: "true"
       KC_LOG_CONSOLE_LEVEL: "info"
       KC_LOG_CONSOLE_COLOR: "false"
       KC_HEALTH_ENABLED: "true"
@@ -17,40 +18,59 @@ services:
 
       # Configuration base de données
       KC_DB: "postgres"
-      KC_DB_URL: "jdbc:postgresql://postgres-stack_postgres-shared:5432/${DB_NAME}"
+      KC_DB_URL: "jdbc:postgresql://${PG_HOST}:5432/${DB_NAME}"
       KC_DB_USERNAME: "${USER_BD}"
       KC_DB_PASSWORD: "${PSW_DB}"
+
+      # Bootstrap admin (à sortir en secrets ensuite)
       KC_BOOTSTRAP_ADMIN_USERNAME: "${KEYCLOAK_ADMIN}"
       KC_BOOTSTRAP_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
 
       # Configuration JVM
       JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"
+
     volumes:
-      - ../../scripts/wait-for-it.sh:/wait-for-it.sh
       - keycloak_data:/opt/keycloak/data
+      - ../../scripts/wait-for-it.sh:/wait-for-it.sh:ro
+
     entrypoint: [
       "./wait-for-it.sh",
-      "postgres-stack_postgres-shared:5432",
+      "${PG_HOST}:5432",
       "--timeout=20",
       "--strict",
       "--",
       "/opt/keycloak/bin/kc.sh",
       "start",
     ]
-    ports:
-      - "${KEYCLOAK_PORT}:8080"
+
     deploy:
       replicas: 2
+
       update_config:
         parallelism: 1
         delay: 30s
         order: start-first
+
       restart_policy:
         condition: on-failure
         delay: 30s
         max_attempts: 5
+
+      labels:
+        # Traefik: exposition explicite (exposedByDefault=false)
+        - "traefik.enable=true"
+        - "traefik.docker.network=edge_network"
+
+        # Route par Host (TLS déjà terminé par Nginx)
+        - "traefik.http.routers.keycloak.rule=Host(`${KEYCLOAK_HOSTNAME}`)"
+        - "traefik.http.routers.keycloak.entrypoints=web"
+
+        # Port interne Keycloak
+        - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+
     networks:
       - company-network
+      - edge_network
 
 volumes:
   keycloak_data:
@@ -60,3 +80,7 @@ networks:
   company-network:
     external: true
     name: company_network
+
+  edge_network:
+    external: true
+    name: edge_network

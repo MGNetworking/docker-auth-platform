@@ -1,0 +1,53 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      # Active le provider Swarm : Traefik lit les labels des services Swarm
+      - --providers.swarm=true
+
+      # Sécurité : aucun service n'est exposé par défaut
+      - --providers.swarm.exposedbydefault=false
+
+      # Réseau Swarm que Traefik doit utiliser pour joindre les services
+      - --providers.swarm.network=edge_network
+
+      # Traefik écoute en HTTP uniquement (TLS est géré par Nginx sur le NAS)
+      - --entrypoints.web.address=:9080
+
+      # Logs utiles en phase de mise au point
+      - --log.level=INFO
+      - --accesslog=true
+
+      # Dashboard activé mais non exposé tant que vous ne créez pas de router
+      - --api.dashboard=true
+      - --api.insecure=false
+
+    ports:
+      # Port d'entrée HTTP interne : Nginx -> Traefik
+      # "mode: host" = publié directement sur le node (NAS)
+      - target: 9080
+        published: 9080
+        protocol: tcp
+        mode: host
+
+    volumes:
+      # Obligatoire : Traefik doit lire l'état Swarm et les labels via l'API Docker
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    networks:
+      - edge_network
+
+    deploy:
+      replicas: 1
+
+      # Traefik doit tourner sur un manager (accès API Swarm et cohérence)
+      placement:
+        constraints:
+          - node.role == manager
+
+      restart_policy:
+        condition: on-failure
+
+networks:
+  edge_network:
+    external: true
