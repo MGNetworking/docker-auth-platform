@@ -6,7 +6,8 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${USER_BD}
-      POSTGRES_PASSWORD: ${PSW_DB}
+      # Mot de passe lu depuis un fichier monté par Docker Swarm
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
     ports:
       - "${PORT_BD}:5432"
     volumes:
@@ -26,7 +27,12 @@ services:
         condition: any  # Redémarre Toujours
         max_attempts: 3
     networks:
-      - company-network
+      company-network:
+        aliases:
+          - "${PG_DNS}"
+    secrets:
+      - pg_password
+
 
 volumes:
   postgres_data:
@@ -36,3 +42,7 @@ networks:
   company-network:
     external: true
     name: company_network
+
+secrets:
+  pg_password:
+    external: true

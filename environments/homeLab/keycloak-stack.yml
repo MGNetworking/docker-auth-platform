@@ -18,13 +18,13 @@ services:
 
       # Configuration base de données
       KC_DB: "postgres"
-      KC_DB_URL: "jdbc:postgresql://${PG_HOST}:5432/${DB_NAME}"
+      KC_DB_URL: "jdbc:postgresql://${PG_DNS}:5432/${DB_NAME}"
       KC_DB_USERNAME: "${USER_BD}"
       KC_DB_PASSWORD: "${PSW_DB}"
 
       # Bootstrap admin (à sortir en secrets ensuite)
-      KC_BOOTSTRAP_ADMIN_USERNAME: "${KEYCLOAK_ADMIN}"
-      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD}"
+      KC_BOOTSTRAP_ADMIN_USERNAME: "admin"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "admin"
 
       # Configuration JVM
       JAVA_OPTS_APPEND: "-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production -Dquarkus.log.console.output=colored"
@@ -33,15 +33,16 @@ services:
       - keycloak_data:/opt/keycloak/data
       - ../../scripts/wait-for-it.sh:/wait-for-it.sh:ro
 
-    entrypoint: [
-      "./wait-for-it.sh",
-      "${PG_HOST}:5432",
-      "--timeout=20",
-      "--strict",
-      "--",
-      "/opt/keycloak/bin/kc.sh",
-      "start",
-    ]
+    secrets:
+      - pg_password
+
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      /wait-for-it.sh "${PG_DNS}:5432" --timeout=20 --strict -- \
+      sh -c '
+        export KC_DB_PASSWORD="$(cat /run/secrets/pg_password)";
+        exec /opt/keycloak/bin/kc.sh start
+      '
 
     deploy:
       replicas: 2
@@ -84,3 +85,7 @@ networks:
   edge_network:
     external: true
     name: edge_network
+
+secrets:
+  pg_password:
+    external: true
