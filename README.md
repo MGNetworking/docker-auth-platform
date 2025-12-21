@@ -1,582 +1,221 @@
-# Keycloak avec PostgreSQL et Redis - Gestion d'Authentification et d'Autorisation
+# HomeLab – Keycloak / PostgreSQL / Redis (Docker Swarm)
 
-* [Technologies utilisées](#technologies-utilisées)
-    * [Keycloak](#keycloak)
-    * [PostgreSQL](#postgresql)
-    * [Redis](#redis)
-    * [Docker Swarm](#docker-swarm)
-* [Scripts de Gestion](#scripts-de-gestion)
-    * [Les Scripts de Déploiement](#les-scripts-de-déploiement)
-    * [Scripts d'Infrastructure](#scripts-dinfrastructure)
-    * [Script wait-for-it.sh](#script-wait-for-itsh)
-    * [En cas de problème d'accès](#en-cas-de-problème-daccès)
-* [Environnements](#environnements)
-    * [Environnement de Développement](#environnement-de-développement)
-    * [Environnement NAS/Production](#environnement-nasproduction)
-* [Pipeline CI/CD](#pipeline-cicd)
-* [Backup postgreSQL](#backup-postgresql)
-* [Gestion des realm role / user dans Keycloak](#gestion-des-realm-role--user-dans-keycloak)
-* [Configuration des variables](#configuration-des-variables)
-    * [Paramètres généraux](#paramètres-généraux)
-    * [Configuration Redis](#configuration-redis)
-    * [Logs](#logs)
-    * [Métriques et santé](#métriques-et-santé)
-    * [Configuration de la base de données](#configuration-de-la-base-de-données)
-    * [Utilisateur administrateur temporaire](#utilisateur-administrateur-temporaire)
-    * [Configuration de la JVM](#configuration-de-la-jvm)
-    * [Tableau de comparaison Dev vs Prod](#tableau-de-comparaison-dev-vs-prod)
-    * [Option configure la JVM](#option-configure-la-jvm)
-* [Structure des fichiers](#structure-des-fichiers)
-* [Gestion des Themes Keycloak](#gestion-des-themes-keycloak)
-* [Information](#information)
+## Sommaire
 
-Ce projet met en œuvre une solution de gestion des utilisateurs et des autorisations en utilisant **Keycloak**
-conjointement avec **PostgreSQL** et **Redis**. Il s'agit d'une implémentation déployée via **Docker Swarm** pour gérer
-l'authentification et
-l'autorisation dans vos applications, en s'appuyant sur les standards **OpenID Connect** et **OAuth2**.
+- [Présentation](#présentation)
+- [Architecture générale](#architecture-générale)
+- [Technologies](#technologies)
+- [Structure du dépôt](#structure-du-dépôt)
+- [Prérequis](#prérequis)
+- [Gestion des secrets Docker](#gestion-des-secrets-docker)
+- [Scripts](#scripts)
+    - [ensure-infra.sh](#ensure-infrash)
+    - [deploy-infra.sh](#deploy-infrash)
+    - [restart-infra.sh](#restart-infrash)
+    - [Scripts de backup PostgreSQL](#scripts-de-backup-postgresql)
+- [Droits d’exécution des scripts](#droits-dexécution-des-scripts)
+- [Sauvegardes PostgreSQL](#sauvegardes-postgresql)
+- [Restauration PostgreSQL](#restauration-postgresql)
+- [Exposition Keycloak](#exposition-keycloak)
+- [Notes pour recruteurs](#notes-pour-recruteurs)
 
-## Technologies utilisées
+---
 
-### Keycloak
+## Présentation
 
-Keycloak est une solution de gestion d'identité et d'accès (IAM) open-source. Dans ce projet, Keycloak est configuré
-pour fonctionner avec le protocole **OpenID Connect** (OIDC) et **OAuth2**. Ces protocoles permettent :
+Ce projet présente une **infrastructure HomeLab professionnelle** basée sur **Docker Swarm**, conçue pour exposer un *
+*Keycloak** industriel avec **PostgreSQL** et **Redis**.
 
-- **OpenID Connect** : Assurer l'authentification sécurisée des utilisateurs.
-- **OAuth2** : Gérer les autorisations d'accès aux ressources en fonction des rôles et des permissions.
+L’objectif est :
 
-Keycloak permet une intégration facile avec vos applications grâce à ses connecteurs et options de configuration.
+- démontrer une **maîtrise DevOps / infra**
+- montrer une **architecture propre, idempotente et scriptée**
+- proposer une base **réaliste et maintenable**
 
-### PostgreSQL
+Ce dépôt est volontairement orienté **infrastructure** et non applicatif.
 
-PostgreSQL est utilisé comme base de données relationnelle pour stocker les informations d'authentification et d'
-autorisation de Keycloak.
+---
 
-- **Version utilisée** : PostgreSQL 15
-- **Rôle** : Stockage persistent des utilisateurs, rôles, permissions et configurations Keycloak
-- **Configuration** : Optimisée pour les performances et la sécurité
+## Architecture générale
 
-### Redis
+- **Docker Swarm** (single-node NAS, extensible multi-nodes)
+- **Traefik** (reverse-proxy interne)
+- **Nginx NAS** (TLS en frontal)
+- **Keycloak** (IAM)
+- **PostgreSQL** (base partagée)
+- **Redis** (cache / sessions)
 
-Redis est configuré comme un cache haute performance avec persistance optionnelle pour améliorer les performances de
-l'application.
+Tous les services communiquent via des **réseaux overlay**.
 
-- **Version utilisée** : Redis 7-alpine
-- **Rôle** : Cache en mémoire, stockage de sessions, files d'attente
-- **Configuration** : Sécurisé avec authentification et limites mémoire
+---
 
-### Redis
+## Technologies
 
-Redis est configuré comme un cache haute performance avec persistance optionnelle pour améliorer les performances de
-l'application.
+- Keycloak 26.x
+- PostgreSQL 17-alpine
+- Redis 7-alpine
+- Docker Swarm
+- Bash (scripts idempotents)
 
-- **Version utilisée** : Redis 7-alpine
-- **Rôle** : Cache en mémoire, stockage de sessions, files d'attente
-- **Configuration** : Sécurisé avec authentification et limites mémoire
+---
 
-### Docker Swarm
+## Structure du dépôt
 
-Docker Swarm est utilisé comme orchestrateur pour gérer le déploiement des services en haute disponibilité :
+```text
+.
+├── environments/
+│   └── homeLab/
+│       ├── .env
+│       ├── traefik-stack.yml
+│       ├── redis-stack.yml
+│       ├── postgresql-stack.yml
+│       └── keycloak-stack.yml
+├── postgres_home/
+│   ├── backups/
+│   │   ├── daily/
+│   │   └── manual/
+│   ├── init/
+│   └── scripts/
+│       ├── ensure-backup-dirs.sh
+│       ├── backup-daily-cluster.sh
+│       ├── backup-manual.sh
+│       ├── restore-daily-cluster.sh
+│       ├── restore-manual-db.sh
+│       └── restore-manual-schema.sh
+├── script/
+│   ├── ensure-infra.sh
+│   ├── deploy-infra.sh
+│   ├── restart-infra.sh
+│   └── wait-for-it.sh
+├── secrets/
+│   ├── secrets.manifest
+│   └── check-secrets.sh
+└── README.md
+```
 
-- **Mode cluster** : Permet la répartition des services sur plusieurs nœuds
-- **Réseau overlay** : Communication sécurisée entre les services
-- **Placement constraints** : Contrôle précis du déploiement des services
-- **Auto-recovery** : Redémarrage automatique en cas de panne
+---
 
-## Scripts de Gestion
+## Prérequis
 
-### Les Scripts de Déploiement
+- Docker installé et fonctionnel
+- Docker Swarm initialisable
+- Accès root / sudo (NAS Synology)
+- Secrets Docker créés manuellement
 
-#### Environnement de développement
+---
 
-- **`script/deploy-dev.sh`** : Script principal de déploiement pour l'environnement de développement
-    - Déploie Redis, PostgreSQL et Keycloak sur Docker Swarm
-    - Configure le réseau overlay automatiquement
-    - Vérifie la santé des services après déploiement
+## Gestion des secrets Docker
 
-- **`script/stop-dev.sh`** : Arrête les stacks de développement sans supprimer les volumes
-    - Préserve les données PostgreSQL et Redis
-    - Permet un redémarrage rapide
+Les secrets sont **créés hors dépôt**.
 
-#### Environnement NAS/Production
+Liste attendue :
 
-- **`infrastructure/deploy-nas.sh`** : Script de déploiement pour l'infrastructure de production
-    - Vérifie l'état existant avant déploiement
-    - Initialise Docker Swarm si nécessaire
-    - Déploie l'infrastructure complète (Redis, PostgreSQL, Keycloak)
+- `pg_password`
+- `redis_password`
 
-- **`infrastructure/check-infra.sh`** : Vérifie si l'infrastructure est complète et opérationnelle
-    - Contrôle la présence des stacks
-    - Teste la connectivité des services
-    - Retourne un statut pour automatisation
-
-### Scripts d'Infrastructure
-
-- **`script/create-network.sh`** : Crée le réseau overlay Docker Swarm
-    - Réseau `company_network` pour la communication inter-services
-    - Mode overlay avec option attachable
-
-### Script de Redémarrage Automatique
-
-Le script **`infrastructure/restart-docker-stacks.sh`** est conçu pour automatiser le redémarrage des services Docker
-après un redémarrage du serveur NAS Synology.
-
-#### Fonctionnalités principales
-
-Ce script assure une remise en service automatique et sécurisée de l'infrastructure :
-
-- **Vérification Docker** : Attend que Docker soit complètement opérationnel
-- **Vérification Swarm** : Contrôle l'état de Docker Swarm
-- **Redémarrage ordonné** : Services redémarrés dans l'ordre correct
-- **Logging complet** : Toutes les opérations sont tracées dans un fichier log
-- **Gestion d'erreurs** : Arrêt du script en cas de problème critique
-
-#### Configuration du script
+Vérification :
 
 ```bash
-LOG_FILE="/volume1/development/scripts/logs/docker-stacks-restart.log"
-MAX_WAIT=300        # 5 minutes maximum d'attente
-WAIT_INTERVAL=10    # Vérification toutes les 10 secondes
+./secrets/check-secrets.sh
 ```
 
-#### Séquence d'exécution
+---
 
-1. **Phase d'attente** : Le script attend jusqu'à 5 minutes que Docker soit disponible
-2. **Vérification Swarm** : Contrôle que Docker Swarm est dans l'état "active"
-3. **Stabilisation** : Pause de 30 secondes pour permettre la stabilisation du système
-4. **Redémarrage PostgreSQL** : Force la mise à jour du service PostgreSQL
-5. **Attente intermédiaire** : 20 secondes pour que PostgreSQL soit prêt
-6. **Redémarrage Keycloak** : Force la mise à jour du service Keycloak
-7. **Vérification finale** : Contrôle de l'état des services
+## Scripts
 
-#### Utilisation recommandée
+### ensure-infra.sh
 
-Ce script est particulièrement utile pour :
+- Attend Docker
+- Initialise Swarm si nécessaire
+- Crée les réseaux overlay déclarés dans `.env`
+- Idempotent
 
-- **Redémarrage automatique** après un reboot du serveur NAS
-- **Intégration avec le planificateur de tâches** Synology
-- **Maintenance programmée** des services
-- **Récupération après incident** système
+### deploy-infra.sh
 
-#### Configuration dans Synology
+- Appelle `ensure-infra.sh`
+- Déploie les stacks dans l’ordre :
+    1. Traefik
+    2. Redis
+    3. PostgreSQL
+    4. Keycloak
+- Options :
+    - `--force`
+    - `--no-wait`
 
-Pour automatiser l'exécution au démarrage :
+### restart-infra.sh
 
-1. **Panneau de configuration** > **Planificateur de tâches**
-2. **Créer** > **Tâche programmée** > **Script défini par l'utilisateur**
-3. **Événement** : "Au démarrage"
-4. **Utilisateur** : root
-5. **Script** : `/volume1/docker/keycloak-infrastructure/infrastructure/restart-docker-stacks.sh`
+- Script post-reboot NAS
+- Redémarrage contrôlé des services
+- Logs persistants
 
-#### Logs et monitoring
+### Scripts de backup PostgreSQL
 
-Le script génère des logs détaillés pour le suivi :
+- `ensure-backup-dirs.sh` : prépare l’arborescence
+- `backup-daily-cluster.sh` : dump global quotidien + purge 30 jours
+- `backup-manual.sh` : dump interactif (DB ou schema)
+
+---
+
+## Droits d’exécution des scripts
+
+Après clonage du dépôt, **les scripts doivent être rendus exécutables** :
 
 ```bash
-# Consulter les logs
-tail -f /volume1/development/scripts/logs/docker-stacks-restart.log
-
-# Logs typiques
-2024-01-15 08:30:15 - === Démarrage du script de redémarrage des stacks Docker ===
-2024-01-15 08:30:15 - Vérification de l'état de Docker...
-2024-01-15 08:30:25 - Docker est prêt après 10 secondes
-2024-01-15 08:30:25 - Docker Swarm est actif
-2024-01-15 08:30:55 - Service PostgreSQL redémarré avec succès
-2024-01-15 08:31:25 - Service Keycloak redémarré avec succès
-2024-01-15 08:31:35 - === Script terminé avec succès ===
+chmod +x script/*.sh
+chmod +x postgres_home/scripts/*.sh
+chmod +x secrets/*.sh
 ```
 
-### Script wait-for-it.sh
-
-Le script `wait-for-it.sh` est utilisé dans Keycloak pour attendre que PostgreSQL soit prêt avant de démarrer :
+Recommandé :
 
 ```bash
-./wait-for-it.sh postgres-shared:5432 -- /opt/keycloak/bin/kc.sh start
+find . -name "*.sh" -type f -exec chmod +x {} \;
 ```
 
-### En cas de problème d'accès
+---
 
-Si vous ne pouvez pas accéder à Keycloak, vérifiez :
+## Sauvegardes PostgreSQL
 
-1. **État des services** :
+- **Daily** : cluster complet (`pg_dumpall`)
+- **Manual** :
+    - Base complète
+    - Schema ciblé
+- Aucune création dynamique de dossiers dans le conteneur
+- Tout est monté côté hôte
 
-```bash
-docker service ls
-docker service logs <stack-name>_keycloak
-```
+---
 
-2. **Connectivité réseau** :
+## Restauration PostgreSQL
 
-```bash
-docker network ls
-docker network inspect company_network
-```
+- Script dédié par type :
+    - cluster
+    - base
+    - schema
+- Restauration explicite et volontaire
+- Aucun automatisme destructif
 
-3. **Santé des services** :
+---
 
-```bash
-docker service ps <stack-name>_postgres-shared
-docker service ps <stack-name>_redis-shared
-```
+## Exposition Keycloak
 
-## Environnements
+- DNS interne via alias réseau (`dns-postgres`)
+- Exposition HTTP via Traefik
+- TLS géré par Nginx NAS
+- Réplicas Keycloak = 2
 
-### Environnement de Développement
+---
 
-Situé dans `environments/dev/` :
+## Notes pour recruteurs
 
-- **Configuration** : `.env` avec variables de développement
-- **Services** : Redis, PostgreSQL, Keycloak
-- **Réseau** : Bridge local pour développement rapide
-- **Données** : Volumes locaux, backup facilité
+Ce projet démontre :
 
-### Environnement NAS/Production
+- réflexion **infra avant outil**
+- séparation claire :
+    - infra
+    - secrets
+    - data
+    - backups
+- pratiques **professionnelles et réalistes**
+- capacité à expliquer **pourquoi** chaque choix
 
-Situé dans `environments/nas/` :
-
-- **Configuration** : `.env` avec variables de production
-- **Services** : Redis, PostgreSQL, Keycloak avec constraints de placement
-- **Réseau** : Overlay pour distribution multi-nœuds
-- **Données** : Volumes persistants avec sauvegarde automatisée
-
-## Pipeline CI/CD
-
-Le fichier `Jenkinsfile` automatise le déploiement sur l'environnement NAS :
-
-- **Déclenchement** : Push sur branches spécifiques
-- **Étapes** : Vérification, déploiement, tests de santé
-- **Notifications** : Statut de déploiement
-- **Rollback** : En cas d'échec de déploiement
-
-## Backup postgreSQL
-
-Pour sauvegarder PostgreSQL dans l'environnement Docker Swarm :
-
-```bash
-# Sauvegarde manuelle
-docker exec $(docker ps -q -f "name=postgres-shared") pg_dumpall -U keycloak_user > backup_$(date +%Y%m%d).sql
-
-# Restauration
-docker exec -i $(docker ps -q -f "name=postgres-shared") psql -U keycloak_user -d keycloak < backup_file.sql
-```
-
-## Gestion des realm role / user dans Keycloak
-
-Permet de faire un export des données du realm cible. Cette commande permet notamment d'exporter les utilisateurs est
-leur rôle.
-
-Commande pour keycloak en version supérieure à 17
-
-```shell
-/opt/keycloak/bin/kc.sh export --realm=ghoverblog --file=/opt/keycloak/data/import/ghoverblog-realm.json --users=same_file
-```
-
-Depuis docker (pour Docker Swarm)
-Export des realm est les utilisateurs dans le même fichier.
-
-````shell
-# commande d'export pour Docker Swarm
-docker exec -it $(docker ps -q -f "name=keycloak") /opt/keycloak/bin/kc.sh export --realm=ghoverblog --file=/opt/keycloak/data/ghoverblog-realm.json --users=same_file
-
-# copier du fichier dans le conteneur vers l'extérieur
-docker cp $(docker ps -q -f "name=keycloak"):/opt/keycloak/data/ghoverblog-realm.json ./ghoverblog-realm.json
-````
-
-Les fichiers seront copier depuis le dossier ou la commande à était lancé
-
-Cette commande créera 2 fichiers :
-
-* `ghoverblog-realm.json`
-* `ghoverblog-users-0.json`
-
-Faire un depuis un keycloak en version inférieur à 17
-
-```bash
-cd /opt/jboss/keycloak
-bin/standalone.sh \
--Dkeycloak.migration.action=export \
--Dkeycloak.migration.provider=dir \
--Dkeycloak.migration.dir=/tmp \
--Dkeycloak.migration.realmName=ghoverblog -Djboss.socket.binding.port-offset=100
-```
-
-- `-Dkeycloak.migration.action=export`
-  `export` : Spécifie que l'action à effectuer est une exportation. Cela signifie que Keycloak doit exporter les
-  configurations des realms sous forme de fichiers JSON.
-
-
-- `-Dkeycloak.migration.provider=dir`
-  `dir` : Utilise un répertoire comme destination pour exporter les données ou comme source pour importer les fichiers.
-
-
-- `-Dkeycloak.migration.dir=/tmp`
-  `/tmp` : Répertoire temporaire sur le système avec lequel les fichiers exportés seront écrits. Vous pouvez changer
-  cette valeur pour un autre emplacement.
-
-
-- `-Dkeycloak.migration.realmName=ghoverblog`
-    - Limite l'exportation à un seul realm, ici nommé `ghoverblog`.
-    - Si cette option n'est pas spécifiée, Keycloak exportera tous les realms présents sur le serveur.
-
-Ceux-ci vont créer une instance keycloak pour générer deux fichiers. Un fichier `ghoverblog-realm.json` et un fichier
-`ghoverblog-users-0.json`
-Après exécution de ces fichiers, vous pourrez supprimer l'instance créer dans le terminal avec la commande `CTRL + C`
-
-Puis pour copier ces fichiers sur le disque local, exécuter la commande suivant :
-
-```shell
-# commande pour Docker Swarm
-docker cp $(docker ps -q -f "name=keycloak"):/tmp/[fichier de réception] ./[fichier cible]
-# exemple
-docker cp $(docker ps -q -f "name=keycloak"):/tmp/ghoverblog-realm.json ./ghoverblog-realm.json
-docker cp $(docker ps -q -f "name=keycloak"):/tmp/ghoverblog-users-0.json ./ghoverblog-users-0.json
-```
-
-## Configuration des variables
-
-### Paramètres généraux
-
-Les variables d'environnement principales pour chaque environnement :
-
-```bash
-# Stacks Docker Swarm
-PG_STACK_NAME=postgres-stack
-KC_STACK_NAME=keycloak-stack
-REDIS_STACK_NAME=redis-stack
-
-# Réseau
-COMPANY_NETWORK=company_network
-```
-
-### Configuration Redis
-
-Redis est configuré comme un cache haute performance avec persistance optionnelle. Voici les principales options de
-configuration utilisées :
-
-#### Paramètres de sécurité et performance
-
-```yaml
-command: >
-  redis-server 
-  --requirepass ${REDIS_PASSWORD} 
-  --appendonly yes
-  --maxmemory 1gb
-  --maxmemory-policy allkeys-lru
-```
-
-#### Explication des paramètres
-
-| Paramètre            | Valeur              | Description                                                                 |
-|----------------------|---------------------|-----------------------------------------------------------------------------|
-| `--requirepass`      | `${REDIS_PASSWORD}` | **Obligatoire** - Mot de passe pour sécuriser l'accès à Redis               |
-| `--appendonly`       | `yes`               | Active la persistance AOF (Append Only File) pour la durabilité des données |
-| `--maxmemory`        | `1gb`               | Limite la mémoire utilisée par Redis à 1 GB                                 |
-| `--maxmemory-policy` | `allkeys-lru`       | Stratégie d'éviction : supprime les clés les moins récemment utilisées      |
-
-#### Variables d'environnement Redis requises
-
-```bash
-# Configuration Redis
-REDIS_PASSWORD=your_secure_redis_password
-REDIS_PORT=6379
-REDIS_STACK_NAME=redis-stack
-```
-
-#### Stratégies d'éviction disponibles
-
-- **allkeys-lru** : Supprime les clés les moins récemment utilisées (recommandé pour un cache)
-- **allkeys-lfu** : Supprime les clés les moins fréquemment utilisées
-- **volatile-lru** : Supprime les clés avec TTL les moins récemment utilisées
-- **volatile-lfu** : Supprime les clés avec TTL les moins fréquemment utilisées
-- **noeviction** : Retourne une erreur quand la mémoire est pleine
-
-#### Ressources allouées
-
-```yaml
-deploy:
-  resources:
-    limits:
-      memory: 1200mb        # Limite Docker (marge de sécurité)
-    reservations:
-      memory: 256mb         # Mémoire minimum garantie
-```
-
-La limite Docker (1200MB) est légèrement supérieure à la limite Redis (1GB) pour permettre les métadonnées système et
-éviter les erreurs OOM (Out of Memory).
-
-#### Healthcheck Redis
-
-Redis est configuré avec un healthcheck utilisant la commande `PING` :
-
-```yaml
-healthcheck:
-  test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
-  interval: 10s
-  timeout: 5s
-  retries: 5
-```
-
-#### Cas d'usage recommandés
-
-- **Cache de session** : Stockage rapide des sessions utilisateur
-- **Cache applicatif** : Mise en cache des données fréquemment consultées
-- **Files d'attente** : Traitement asynchrone des tâches
-- **Compteurs** : Statistiques temps réel et métriques
-
-### Logs
-
-Configuration des logs pour chaque environnement :
-
-```bash
-# Niveau de log (dev: debug, prod: info)
-KC_LOG_CONSOLE_LEVEL=info
-```
-
-### Métriques et santé
-
-Configuration du monitoring :
-
-```bash
-KC_HEALTH_ENABLED=true      # Endpoints de santé
-KC_METRICS_ENABLED=true     # Métriques Prometheus
-```
-
-### Configuration de la base de données
-
-Variables PostgreSQL communes :
-
-```bash
-DB_USER=keycloak_user
-DB_PASSWORD=your_secure_password
-DB_NAME=kc_db
-DB_PORT_EXTERNAL=5499       # Port d'accès externe
-```
-
-### Utilisateur administrateur temporaire
-
-Compte admin initial de Keycloak :
-
-```bash
-KEYCLOAK_ADMIN=admin
-KEYCLOAK_ADMIN_PASSWORD=admin_password
-```
-
-### Configuration de la JVM
-
-Optimisation mémoire pour chaque environnement :
-
-```bash
-# Développement
-JAVA_OPTS_APPEND="-XX:MaxRAMPercentage=50 -Dquarkus.log.console.output=colored"
-
-# Production
-JAVA_OPTS_APPEND="-XX:MaxRAMPercentage=75 -Dkeycloak.profile=production"
-```
-
-### Tableau de comparaison Dev vs Prod
-
-| Paramètre    | Développement | Production/NAS             |
-|--------------|---------------|----------------------------|
-| Mémoire JVM  | 50% RAM       | 75% RAM                    |
-| Log Level    | debug         | info                       |
-| HTTPS Strict | false         | true                       |
-| Placement    | Aucun         | node.hostname == BlackHole |
-| Healthcheck  | Basique       | Complet avec retry         |
-
-### Option configure la JVM
-
-Options JVM recommandées par environnement :
-
-- **MaxRAMPercentage** : Pourcentage de RAM allouée à la JVM
-- **Profile** : `development` ou `production`
-- **Log output** : Coloré pour dev, structuré pour prod
-
-## Structure des fichiers
-
-```
-nas-infrastructur/
-├── Jenkinsfile                           # Pipeline CI/CD pour déploiement automatisé
-├── README.md                            # Documentation du projet
-├── docker-compose-prod.yml              # Configuration Docker Compose pour production
-├── environments/                        # Configuration par environnement
-│   ├── dev/                            # Environnement de développement
-│   │   ├── .env                        # Variables d'environnement dev
-│   │   ├── keycloak-swarm.yml          # Configuration Keycloak dev
-│   │   ├── postgresql-swarm.yml        # Configuration PostgreSQL dev
-│   │   └── redis-swarm.yml             # Configuration Redis dev
-│   └── nas/                            # Environnement NAS/Production
-│       ├── .env                        # Variables d'environnement prod
-│       ├── keycloak-swarm.yml          # Configuration Keycloak prod
-│       ├── postgresql-swarm.yml        # Configuration PostgreSQL prod
-│       └── redis-swarm.yml             # Configuration Redis prod
-├── infrastructure/                      # Scripts d'infrastructure
-│   ├── check-infra.sh                  # Vérification de l'infrastructure
-│   └── deploy-nas.sh                   # Déploiement infrastructure NAS
-├── keycloak_home/                      # Configuration et données Keycloak
-│   └── config/                         # Fichiers de configuration
-│       ├── ghoverblog-realm.json       # Configuration du realm
-│       └── ghoverblog-users.json       # Utilisateurs de test
-├── postgres_home/                      # Configuration et données PostgreSQL
-│   ├── backups/                        # Sauvegardes de la base
-│   │   └── backup-Test.sql             # Sauvegarde de test
-│   └── init/                           # Scripts d'initialisation
-│       ├── 00_base_ghoverblog.sql      # Structure de base
-│       └── ms_article_backup.sql       # Données d'exemple
-└── script/                             # Scripts utilitaires
-    ├── create-network.sh               # Création réseau overlay
-    ├── deploy-dev.sh                   # Déploiement environnement dev
-    ├── stop-dev.sh                     # Arrêt environnement dev
-    └── wait-for-it.sh                  # Attente de service
-```
-
-## Gestion des Themes Keycloak
-
-Si vous voulez modifier l'apparence de Keycloak, vous pouvez créer ou utiliser des thèmes personnalisés.
-
-### Structure des thèmes
-
-Les thèmes Keycloak suivent une structure spécifique :
-
-```
-themes/
-└── nom-du-theme/
-    ├── login/           # Pages de connexion
-    ├── account/         # Pages de gestion de compte
-    └── admin/           # Interface d'administration
-```
-
-### Utilisation d'un thème
-
-1. **Placer le thème** dans un volume monté : `/opt/keycloak/themes/`
-2. **Configurer dans l'admin** : Realm Settings > Themes
-3. **Appliquer** : Sélectionner le thème pour Login, Account, etc.
-
-## Information
-
-1. Keycloak
-
-* Documentation
-  officielle [Keycloak](https://www.keycloak.org/guides#getting-started](https://www.keycloak.org/guides#getting-started)
-* La [documentation](https://www.keycloak.org/documentation) de ce projet
-* La version de ce
-  projet [keycloak:26.0](https://quay.io/repository/keycloak/keycloak?tab=tags&tag=26.0)
-
-2. PostgreSQL
-
-* Tutoriel sur [postgres](https://www.postgresqltutorial.com/)
-* La documentation de ce projet, voir le [docker hub](https://hub.docker.com/_/postgres)
-* La version de ce projet [postgres:17-alpine](https://hub.docker.com/_/postgres/tags?page=1&name=17-alpine)
-
-3. Redis
-
-* Documentation officielle [Redis](https://redis.io/documentation)
-* Guide des commandes [Redis Commands](https://redis.io/commands)
-* La version de ce projet [redis:7-alpine](https://hub.docker.com/_/redis/tags?page=1&name=7-alpine)
-
-4. Docker Swarm
-
-* Documentation officielle [Docker Swarm](https://docs.docker.com/engine/swarm/)
-* Guide des [Docker Stack](https://docs.docker.com/engine/reference/commandline/stack/)
-
-5. Other
-    * Le planificateur de [tâches crontab](https://www.linuxtricks.fr/wiki/cron-et-crontab-le-planificateur-de-taches)
+Ce dépôt n’est pas un “hello-world”, mais une **base exploitable en production**.
