@@ -11,9 +11,9 @@ services:
     ports:
       - "${PORT_BD}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data:rw
+      - postgres_data:/var/lib/postgresql/data
       - ../../postgres_home/backups:/var/backups:rw
-      - ../../postgres_home/init:/docker-entrypoint-initdb.d:rw
+      - ../../postgres_home/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${USER_BD} -d ${DB_NAME}"]
       interval: 10s
