@@ -1,3 +1,8 @@
 # Fichier concernant l'IDE
 .idea/
 lib
+postgres_home/init/*
+!postgres_home/init/.keep
+
+postgres_home/backups/*
+!postgres_home/backups/.keep
