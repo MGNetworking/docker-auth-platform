@@ -23,17 +23,21 @@
 
 ## Présentation
 
-Ce projet présente une **infrastructure HomeLab professionnelle** basée sur **Docker Swarm**, conçue pour exposer un *
-*Keycloak** industriel avec **PostgreSQL** et **Redis**.
+Ce projet met à disposition un environnement technique destiné à fournir un système d’authentification SSO basé sur
+Keycloak, associé à une base de données relationnelle (PostgreSQL) et à une base de données en mémoire non
+relationnelle (Redis).
 
-L’objectif est :
+Cet environnement permet de tester et d’exposer des API au public de manière sécurisée, dans des conditions proches de
+la production, sans dépendre d’une infrastructure cloud externe.
 
-- démontrer une **maîtrise DevOps / infra**
-- montrer une **architecture propre, idempotente et scriptée**
-- proposer une base **réaliste et maintenable**
+La plateforme est déployée et exploitée via Docker Swarm, avec une attention particulière portée à :
+- la sécurité (réseaux overlay, secrets, exposition contrôlée)
+- la persistance des données
+- les sauvegardes PostgreSQL
 
-Ce dépôt est volontairement orienté **infrastructure** et non applicatif.
+la reprise de service automatisée après redémarrage.
 
+Ce dépôt est volontairement orienté infrastructure et exploitation, et sert de socle technique pour des projets applicatifs nécessitant une gestion d’identité centralisée.
 ---
 
 ## Architecture générale
