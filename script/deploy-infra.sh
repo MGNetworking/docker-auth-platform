@@ -139,7 +139,11 @@ deploy_stack() {
   if stack_exists "$stack"; then
     if [ "$FORCE_DEPLOY" = "true" ]; then
       log "Stack existante -> --force activé : réapplication stack: $stack (fichier: $yml)"
-      docker stack deploy -c "$yml" "$stack" >/dev/null
+
+      docker service ps $stack --no-trunc | tee -a "$LOG_FILE" || true
+      docker service logs $stack --tail 200 | tee -a "$LOG_FILE" || true
+      docker stack deploy -c "$yml" "$stack" 2>&1 | tee -a "$LOG_FILE"
+
     else
       log "Stack déjà déployée: $stack (skip)"
     fi
@@ -147,7 +151,8 @@ deploy_stack() {
   fi
 
   log "Déploiement stack: $stack (fichier: $yml)"
-  docker stack deploy -c "$yml" "$stack" >/dev/null
+  docker stack deploy -c "$yml" "$stack" 2>&1 | tee -a "$LOG_FILE"
+
 }
 
 wait_replicas_stable() {
