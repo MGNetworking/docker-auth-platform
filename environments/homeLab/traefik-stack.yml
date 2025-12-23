@@ -13,12 +13,17 @@ services:
 
       # Traefik écoute en HTTP uniquement (TLS est géré par Nginx sur le NAS)
       - --entrypoints.web.address=:9080
+      - --entrypoints.web.forwardedHeaders.insecure=true
+
+      # Health / Ping
+      - --ping=true
+      - --ping.entrypoint=web
 
       # Logs utiles en phase de mise au point
       - --log.level=INFO
       - --accesslog=true
 
-      # Dashboard activé mais non exposé tant que vous ne créez pas de router
+      # Dashboard activé mais non exposé
       - --api.dashboard=true
       - --api.insecure=false
 
@@ -36,6 +41,13 @@ services:
 
     networks:
       - edge_network
+
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://127.0.0.1:9080/ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
     deploy:
       replicas: 1
