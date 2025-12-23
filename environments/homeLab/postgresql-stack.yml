@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres-shared:
     image: postgres:17-alpine
@@ -8,17 +6,21 @@ services:
       POSTGRES_USER: ${USER_BD}
       # Mot de passe lu depuis un fichier monté par Docker Swarm
       POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+
     ports:
       - "${PORT_BD}:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../../postgres_home/backups:/var/backups:rw
       - ../../postgres_home/init:/docker-entrypoint-initdb.d:ro
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${USER_BD} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
     deploy:
       replicas: 1
       placement:
@@ -32,7 +34,6 @@ services:
           - "${PG_DNS}"
     secrets:
       - pg_password
-
 
 volumes:
   postgres_data:
