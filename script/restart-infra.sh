@@ -95,20 +95,44 @@ service_exists() {
 }
 
 wait_docker_ready() {
-  log_message "Vérification de l'état de Docker (timeout=${MAX_WAIT}s)..."
+  log_message "Vérification de l'état de Docker et Docker Swarm (timeout=${MAX_WAIT}s)..."
+
   local elapsed=0
+  local swarm_state="unknown"
+
   while [ "$elapsed" -lt "$MAX_WAIT" ]; do
+    # 1) Docker daemon disponible ?
     if docker info >/dev/null 2>&1; then
-      log_message "Docker est prêt après ${elapsed}s"
-      return 0
+      # 2) État Swarm
+      swarm_state="$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo unknown)"
+
+      case "$swarm_state" in
+        active)
+          log_message "Docker et Swarm prêts après ${elapsed}s (state=active)"
+          return 0
+          ;;
+        inactive)
+          log_message "Docker prêt mais Swarm inactif (state=inactive) — attente..."
+          ;;
+        pending)
+          log_message "Docker prêt mais Swarm en cours d'initialisation (state=pending) — attente..."
+          ;;
+        *)
+          log_message "Docker prêt mais état Swarm inconnu ($swarm_state) — attente..."
+          ;;
+      esac
+    else
+      log_message "Docker pas encore prêt (${elapsed}s/${MAX_WAIT}s) — attente..."
     fi
-    log_message "Docker pas encore prêt (${elapsed}s/${MAX_WAIT}s) -> attente..."
+
     sleep "$WAIT_INTERVAL"
     elapsed=$((elapsed + WAIT_INTERVAL))
   done
-  log_message "ERREUR: Docker indisponible après ${MAX_WAIT}s"
+
+  log_message "ERREUR: Docker/Swarm indisponible après ${MAX_WAIT}s (dernier état Swarm=$swarm_state)"
   return 1
 }
+
 
 check_swarm_active() {
   log_message "Vérification de l'état de Docker Swarm..."
