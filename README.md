@@ -86,7 +86,7 @@ Tous les services communiquent via des **réseaux overlay**.
 │       ├── restore-daily-cluster.sh
 │       ├── restore-manual-db.sh
 │       └── restore-manual-schema.sh
-├── script/
+├── scripts/
 │   ├── ensure-infra.sh
 │   ├── deploy-infra.sh
 │   ├── restart-infra.sh
@@ -165,7 +165,7 @@ Vérification :
 Après clonage du dépôt, **les scripts doivent être rendus exécutables** :
 
 ```bash
-chmod +x script/*.sh
+chmod +x scripts/*.sh
 chmod +x postgres_home/scripts/*.sh
 chmod +x secrets/*.sh
 ```
