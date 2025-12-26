@@ -8,6 +8,54 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# =========================
+# Chargement des fichiers .env
+# =========================
+
+ENV_DIR="$PROJECT_ROOT/environments/homeLab"
+
+shopt -s nullglob
+ENV_FILES=("$ENV_DIR"/*.env)
+shopt -u nullglob
+
+if [ "${#ENV_FILES[@]}" -eq 0 ]; then
+  echo "Aucun fichier .env trouvé dans $ENV_DIR" >&2
+  exit 1
+fi
+
+set -a
+for CONF_FILE in "${ENV_FILES[@]}"; do
+  source "$CONF_FILE"
+done
+set +a
+
+: "${LOG_DIR:?LOG_DIR manquant dans config.env}"
+
+# =========================
+# Logging (hôte)
+# =========================
+SCRIPT_NAME="$(basename "$0" .sh)"
+LOG_FILE="${LOG_DIR}/${SCRIPT_NAME}.log"
+
+mkdir -p "$LOG_DIR"
+
+log() {
+  local level="$1"; shift
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $*"
+}
+
+# Tout stdout/stderr -> console + fichier (append)
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+# En cas d'erreur, log + exit code
+trap 'rc=$?; log ERROR "Échec (rc=$rc) à la ligne $LINENO"; exit $rc' ERR
+
+log INFO "=== START ENSURE BACKUP DIRS ==="
+log INFO "Project root : $PROJECT_ROOT"
+log INFO "Env dir      : $ENV_DIR"
+log INFO "Env files    : ${ENV_FILES[*]}"
+log INFO "Log file     : $LOG_FILE"
+
 BASE_DIR="$PROJECT_ROOT/postgres_home/backups"
 
 DIRS=(
@@ -16,19 +64,17 @@ DIRS=(
   "$BASE_DIR/manual/schema"
 )
 
-echo "=== ENSURE BACKUP DIRS ==="
-echo "PROJECT_ROOT: $PROJECT_ROOT"
-echo "Base backups : $BASE_DIR"
-echo ""
+log INFO "Base backups : $BASE_DIR"
 
 for d in "${DIRS[@]}"; do
   if [ -d "$d" ]; then
-    echo "OK  : $d"
+    log INFO "OK     : $d"
   else
-    echo "CREATE: $d"
+    log INFO "CREATE : $d"
     mkdir -p "$d"
+    log INFO "CREATED: $d"
   fi
 done
 
-echo ""
-echo "OK: dossiers de backups prêts."
+log INFO "OK: dossiers de backups prêts."
+log INFO "=== END ENSURE BACKUP DIRS ==="
