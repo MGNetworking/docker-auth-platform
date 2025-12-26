@@ -45,10 +45,9 @@ EOF
   esac
 done
 
-
-# =========================
+# ===================================================================
 # Chargement des fichiers .env
-# =========================
+# ===================================================================
 
 ENV_DIR="$PROJECT_ROOT/environments/homeLab"
 
@@ -71,7 +70,8 @@ set +a
 # Paramètres
 # -------------------------------------------------------------------
 
-ENSURE_INFRA_SCRIPT="$PROJECT_ROOT/script/ensure-infra.sh"
+ENSURE_INFRA_SCRIPT="$PROJECT_ROOT/scripts/ensure-infra.sh"
+ENSURE_BACKUP_DIRS_SCRIPT="$PROJECT_ROOT/postgres_home/scripts/ensure-backup-dirs.sh"
 MAX_WAIT="${MAX_WAIT:-420}"
 WAIT_INTERVAL="${WAIT_INTERVAL:-10}"
 
@@ -214,7 +214,13 @@ log "=== ENSURE INFRA (Docker/Swarm/Réseaux) ==="
 chmod +x "$ENSURE_INFRA_SCRIPT" || true
 "$ENSURE_INFRA_SCRIPT"
 
-# 2) Déploiement des stacks (ordre logique)
+# 2) Ensure backup dirs (hôte)
+log "=== ENSURE BACKUP DIRS (hôte) ==="
+[ -f "$ENSURE_BACKUP_DIRS_SCRIPT" ] || die "Script introuvable: $ENSURE_BACKUP_DIRS_SCRIPT"
+chmod +x "$ENSURE_BACKUP_DIRS_SCRIPT" || true
+"$ENSURE_BACKUP_DIRS_SCRIPT"
+
+# 3) Déploiement des stacks (ordre logique)
 log "=== DÉPLOIEMENT TRAEFIK (interne) ==="
 deploy_stack "$TRAEFIK_STACK_NAME" "$TRAEFIK_YML"
 wait_replicas_stable "${TRAEFIK_STACK_NAME}_traefik" 180 || true
