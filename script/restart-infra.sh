@@ -12,25 +12,32 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # =========================
-# Chargement .env
+# Chargement des fichiers .env
 # =========================
-ENV_FILE="$PROJECT_ROOT/environments/homeLab/.env"
-[ -f "$ENV_FILE" ] || { echo "ERREUR: .env introuvable: $ENV_FILE"; exit 1; }
-
 set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
+
+for env_file in "$PROJECT_ROOT/environments/homeLab"/*.env; do
+  if [ ! -f "$env_file" ]; then
+    echo "❌ Fichier de configuration manquant : $env_file" >&2
+    exit 1
+  fi
+
+  source "$env_file"
+done
+
 set +a
 
 # =========================
-# Paramètres (surcharge possible via .env)
+# Paramètres
 # =========================
 MAX_WAIT="${MAX_WAIT:-420}"
 WAIT_INTERVAL="${WAIT_INTERVAL:-10}"
 
+# Endpoint interne Traefik (Nginx -> Traefik)
+TRAEFIK_LOCAL_URL="http://127.0.0.1:${TRAEFIK_PORT_INTERNAL}/"
+
 # =========================
-# Configuration logs (via .env)
-# Recommandé dans .env : LOG_DIR=/volume1/development/scripts/logs
+# Configuration logs
 # =========================
 LOG_DIR="${LOG_DIR:-/tmp}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/restart-infra.log}"
@@ -75,17 +82,10 @@ trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 : "${TRAEFIK_STACK_NAME:?TRAEFIK_STACK_NAME manquant dans .env}"
 : "${TRAEFIK_PORT_INTERNAL:?TRAEFIK_PORT_INTERNAL manquant dans .env}"
 
-# =========================
-# Noms Swarm complets : stack_service
-# (si vous changez vos noms de services dans les YAML, adaptez les suffixes)
-# =========================
-TRAEFIK_SERVICE="${TRAEFIK_STACK_NAME}_traefik"
-POSTGRES_SERVICE="${PG_STACK_NAME}_postgres-shared"
-REDIS_SERVICE="${REDIS_STACK_NAME}_redis-shared"
-KEYCLOAK_SERVICE="${KC_STACK_NAME}_keycloak"
-
-# Endpoint interne Traefik (Nginx -> Traefik)
-TRAEFIK_LOCAL_URL="http://127.0.0.1:${TRAEFIK_PORT_INTERNAL}/"
+: "${TRAEFIK_YML:?Variable TRAEFIK_YML manquante dans le fichier config.env}"
+: "${REDIS_YML:?Variable REDIS_YML manquante dans le fichier config.env}"
+: "${POSTGRES_YML:?Variable POSTGRES_YML manquante dans le fichier config.env}"
+: "${KEYCLOAK_YML:?Variable KEYCLOAK_YML manquante dans le fichier config.env}"
 
 # =========================
 # Helpers

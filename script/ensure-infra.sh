@@ -18,34 +18,31 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# ------------------------------------------------------------
-# Chemins
-# ------------------------------------------------------------
-ENV_DIR="$PROJECT_ROOT/environments/homeLab"
-ENV_FILE="$ENV_DIR/.env"
+# =========================
+# Chargement des fichiers .env
+# =========================
 
-# ------------------------------------------------------------
-# Pré-check fichiers
-# ------------------------------------------------------------
-[ -f "$ENV_FILE" ] || { echo "ERREUR: Fichier .env introuvable: $ENV_FILE"; exit 1; }
-
-# ------------------------------------------------------------
-# Chargement env (pour LOG_DIR etc.)
-# ------------------------------------------------------------
 set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
+
+for CONF_FILE in "$PROJECT_ROOT/environments/homeLab"/*.env; do
+  if [ ! -f "$env_file" ]; then
+    echo "❌ Fichier de configuration manquant : $env_file" >&2
+    exit 1
+  fi
+
+  source "$CONF_FILE"
+done
+
 set +a
 
 # ------------------------------------------------------------
-# Paramètres (surcharge possible via .env)
+# Paramètres (surcharge possible via config.env)
 # ------------------------------------------------------------
 MAX_WAIT="${MAX_WAIT:-420}"
 WAIT_INTERVAL="${WAIT_INTERVAL:-10}"
 
 # ------------------------------------------------------------
 # Logging (serveur) : fichier + terminal
-# Recommandé dans .env : LOG_DIR=/volume1/development/scripts/logs
 # ------------------------------------------------------------
 LOG_DIR="${LOG_DIR:-/tmp}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/ensure-infra.log}"
@@ -79,8 +76,8 @@ trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 # ------------------------------------------------------------
 # Variables attendues
 # ------------------------------------------------------------
-: "${OVERLAY_NETWORKS:?OVERLAY_NETWORKS manquant dans .env (ex: \"company_network,edge_network\")}"
-OVERLAY_ATTACHABLE="${OVERLAY_ATTACHABLE:-true}"
+: "${OVERLAY_NETWORKS:?OVERLAY_NETWORKS manquant dans config.env }"
+: "${OVERLAY_ATTACHABLE:?OVERLAY_ATTACHABLE manquant dans config.env }"
 
 # ------------------------------------------------------------
 # Docker/Swarm helpers
@@ -160,7 +157,7 @@ ensure_overlay_network() {
 # ------------------------------------------------------------
 log "=== ENSURE INFRA (Swarm + réseaux overlay) ==="
 log "PROJECT_ROOT        : $PROJECT_ROOT"
-log "ENV_FILE            : $ENV_FILE"
+log "CONF_FILE           : $CONF_FILE"
 log "LOG_FILE            : $LOG_FILE"
 log "OVERLAY_NETWORKS    : $OVERLAY_NETWORKS"
 log "OVERLAY_ATTACHABLE  : $OVERLAY_ATTACHABLE"

@@ -45,46 +45,34 @@ EOF
   esac
 done
 
-# -------------------------------------------------------------------
-# Chemins projet
-# -------------------------------------------------------------------
-ENV_DIR="$PROJECT_ROOT/environments/homeLab"
-ENV_FILE="$ENV_DIR/.env"
 
-ENSURE_INFRA_SCRIPT="$PROJECT_ROOT/script/ensure-infra.sh"
+# =========================
+# Chargement des fichiers .env
+# =========================
 
-TRAEFIK_YML="$ENV_DIR/traefik-stack.yml"
-REDIS_YML="$ENV_DIR/redis-stack.yml"
-POSTGRES_YML="$ENV_DIR/postgresql-stack.yml"
-KEYCLOAK_YML="$ENV_DIR/keycloak-stack.yml"
+set -a
 
-# -------------------------------------------------------------------
-# Vérifications fichiers minimales (avant .env)
-# -------------------------------------------------------------------
-[ -f "$ENV_FILE" ] || { echo "ERREUR: Fichier .env introuvable: $ENV_FILE"; exit 1; }
-[ -f "$ENSURE_INFRA_SCRIPT" ] || { echo "ERREUR: Script ensure-infra introuvable: $ENSURE_INFRA_SCRIPT"; exit 1; }
+for CONF_FILE in "$PROJECT_ROOT/environments/homeLab"/*.env; do
+  if [ ! -f "$env_file" ]; then
+    echo "❌ Fichier de configuration manquant : $env_file" >&2
+    exit 1
+  fi
 
-for f in "$TRAEFIK_YML" "$REDIS_YML" "$POSTGRES_YML" "$KEYCLOAK_YML"; do
-  [ -f "$f" ] || { echo "ERREUR: Fichier YAML introuvable: $f"; exit 1; }
+  source "$CONF_FILE"
 done
 
-# -------------------------------------------------------------------
-# Chargement des variables d'environnement
-# -------------------------------------------------------------------
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
 set +a
 
 # -------------------------------------------------------------------
-# Paramètres (surcharge possible via .env)
+# Paramètres
 # -------------------------------------------------------------------
+
+ENSURE_INFRA_SCRIPT="$PROJECT_ROOT/script/ensure-infra.sh"
 MAX_WAIT="${MAX_WAIT:-420}"
 WAIT_INTERVAL="${WAIT_INTERVAL:-10}"
 
 # -------------------------------------------------------------------
 # Logging (serveur) : fichier + terminal
-# Recommandé dans .env : LOG_DIR=/volume1/development/scripts/logs
 # -------------------------------------------------------------------
 LOG_DIR="${LOG_DIR:-/tmp}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/deploy-infra.log}"
@@ -118,12 +106,17 @@ trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 # -------------------------------------------------------------------
 # Variables attendues
 # -------------------------------------------------------------------
-: "${PG_STACK_NAME:?PG_STACK_NAME manquant dans .env}"
-: "${KC_STACK_NAME:?KC_STACK_NAME manquant dans .env}"
-: "${REDIS_STACK_NAME:?REDIS_STACK_NAME manquant dans .env}"
-: "${KEYCLOAK_HOSTNAME:?KEYCLOAK_HOSTNAME manquant dans .env}"
-: "${TRAEFIK_STACK_NAME:?TRAEFIK_STACK_NAME manquant dans .env}"
-: "${TRAEFIK_PORT_INTERNAL:?TRAEFIK_PORT_INTERNAL manquant dans .env}"
+: "${PG_STACK_NAME:?PG_STACK_NAME manquant dans le fichier .env}"
+: "${KC_STACK_NAME:?KC_STACK_NAME manquant dans le fichier .env}"
+: "${REDIS_STACK_NAME:?REDIS_STACK_NAME manquant dans le fichier .env}"
+: "${KEYCLOAK_HOSTNAME:?KEYCLOAK_HOSTNAME manquant dans le fichier .env}"
+: "${TRAEFIK_STACK_NAME:?TRAEFIK_STACK_NAME manquant dans le fichier .env}"
+: "${TRAEFIK_PORT_INTERNAL:?TRAEFIK_PORT_INTERNAL manquant dans le fichier .env}"
+
+: "${TRAEFIK_YML:?Variable TRAEFIK_YML manquante dans le fichier config.env}"
+: "${REDIS_YML:?Variable REDIS_YML manquante dans le fichier config.env}"
+: "${POSTGRES_YML:?Variable POSTGRES_YML manquante dans le fichier config.env}"
+: "${KEYCLOAK_YML:?Variable KEYCLOAK_YML manquante dans le fichier config.env}"
 
 # -------------------------------------------------------------------
 # Fonctions Swarm / Stacks
