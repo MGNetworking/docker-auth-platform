@@ -50,17 +50,21 @@ done
 # Chargement des fichiers .env
 # =========================
 
+ENV_DIR="$PROJECT_ROOT/environments/homeLab"
+
+shopt -s nullglob
+ENV_FILES=("$ENV_DIR"/*.env)
+shopt -u nullglob
+
+if [ "${#ENV_FILES[@]}" -eq 0 ]; then
+  echo "Aucun fichier .env trouvé dans $ENV_DIR" >&2
+  exit 1
+fi
+
 set -a
-
-for CONF_FILE in "$PROJECT_ROOT/environments/homeLab"/*.env; do
-  if [ ! -f "$env_file" ]; then
-    echo "❌ Fichier de configuration manquant : $env_file" >&2
-    exit 1
-  fi
-
+for CONF_FILE in "${ENV_FILES[@]}"; do
   source "$CONF_FILE"
 done
-
 set +a
 
 # -------------------------------------------------------------------
