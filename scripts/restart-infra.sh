@@ -209,12 +209,14 @@ check_traefik_http() {
 # Main
 # =========================
 log_message "=== Démarrage restart-docker-stacks ==="
-log_message "LOG_FILE=$LOG_FILE"
 log_message "Services ciblés:"
-log_message "  Traefik   : $TRAEFIK_SERVICE"
-log_message "  Redis     : $REDIS_SERVICE"
-log_message "  PostgreSQL: $POSTGRES_SERVICE"
-log_message "  Keycloak  : $KEYCLOAK_SERVICE"
+log_message "  Traefik              : $TRAEFIK_SERVICE"
+log_message "  Redis                : $REDIS_SERVICE"
+log_message "  PostgreSQL           : $POSTGRES_SERVICE"
+log_message "  Keycloak             : $KEYCLOAK_SERVICE"
+log_message "  ENV_FILES            : $ENV_FILES"
+log_message "  LOG_DIR              : $LOG_DIR"
+log_message " LOG_FILE              : $LOG_FILE"
 
 wait_docker_ready
 check_swarm_active

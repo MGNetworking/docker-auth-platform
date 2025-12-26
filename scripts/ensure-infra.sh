@@ -162,6 +162,8 @@ ensure_overlay_network() {
 log "=== ENSURE INFRA (Swarm + réseaux overlay) ==="
 log "PROJECT_ROOT        : $PROJECT_ROOT"
 log "CONF_FILE           : $CONF_FILE"
+log "ENV_FILES           : $ENV_FILES"
+log "LOG_DIR             : $LOG_DIR"
 log "LOG_FILE            : $LOG_FILE"
 log "OVERLAY_NETWORKS    : $OVERLAY_NETWORKS"
 log "OVERLAY_ATTACHABLE  : $OVERLAY_ATTACHABLE"
