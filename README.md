@@ -89,7 +89,8 @@ Tous les services communiquent via des **réseaux overlay**.
 ├── scripts/
 │   ├── ensure-infra.sh
 │   ├── deploy-infra.sh
-│   ├── restart-infra.sh
+│   ├── restart-infra.sh 
+│   ├── reset-infra.sh
 │   └── wait-for-it.sh
 ├── secrets/
 │   ├── secrets.manifest
