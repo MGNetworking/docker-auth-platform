@@ -52,7 +52,10 @@ done
 ENV_DIR="$PROJECT_ROOT/environments/homeLab"
 
 shopt -s nullglob
-ENV_FILES=("$ENV_DIR"/*.env)
+ENV_FILES=(
+  "$ENV_DIR/.env"
+  "$ENV_DIR"/*.env
+)
 shopt -u nullglob
 
 if [ "${#ENV_FILES[@]}" -eq 0 ]; then
@@ -63,6 +66,7 @@ fi
 set -a
 for CONF_FILE in "${ENV_FILES[@]}"; do
   source "$CONF_FILE"
+  echo "SOURCING: $CONF_FILE"
 done
 set +a
 

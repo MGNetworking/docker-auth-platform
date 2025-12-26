@@ -15,7 +15,10 @@ cd "$PROJECT_ROOT"
 ENV_DIR="$PROJECT_ROOT/environments/homeLab"
 
 shopt -s nullglob
-ENV_FILES=("$ENV_DIR"/*.env)
+ENV_FILES=(
+  "$ENV_DIR/.env"
+  "$ENV_DIR"/*.env
+)
 shopt -u nullglob
 
 if [ "${#ENV_FILES[@]}" -eq 0 ]; then
