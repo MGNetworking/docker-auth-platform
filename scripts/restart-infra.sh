@@ -214,7 +214,7 @@ check_traefik_http() {
 log_message "=== Démarrage restart-docker-stacks ==="
 log_message "Services ciblés:"
 log_message "  Traefik              : $TRAEFIK_STACK_NAME"
-log_message "  Redis                : $REDIS_SERVICE"
+log_message "  Redis                : $REDIS_STACK_NAME"
 log_message "  PostgreSQL           : $PG_STACK_NAME"
 log_message "  Keycloak             : $KC_STACK_NAME"
 log_message "  ENV_FILES            : $ENV_FILES"
