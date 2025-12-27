@@ -12,7 +12,7 @@ cd "$PROJECT_ROOT"
 # Chargement des fichiers .env
 # =========================
 
-ENV_DIR="$PROJECT_ROOT/environments/homeLab"
+ENV_DIR="$PROJECT_ROOT/../environments/homeLab"
 
 shopt -s nullglob
 ENV_FILES=(

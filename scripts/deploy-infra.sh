@@ -227,19 +227,19 @@ chmod +x "$ENSURE_BACKUP_DIRS_SCRIPT" || true
 
 # 3) Déploiement des stacks (ordre logique)
 log "=== DÉPLOIEMENT TRAEFIK (interne) ==="
-deploy_stack "$TRAEFIK_STACK_NAME" "$TRAEFIK_YML"
+deploy_stack "$TRAEFIK_STACK_NAME" "$ENV_DIR/$TRAEFIK_YML"
 wait_replicas_stable "${TRAEFIK_STACK_NAME}_traefik" 180 || true
 
 log "=== DÉPLOIEMENT REDIS ==="
-deploy_stack "$REDIS_STACK_NAME" "$REDIS_YML"
+deploy_stack "$REDIS_STACK_NAME" "$ENV_DIR/$REDIS_YML"
 wait_replicas_stable "${REDIS_STACK_NAME}_redis-shared" 180 || true
 
 log "=== DÉPLOIEMENT POSTGRESQL ==="
-deploy_stack "$PG_STACK_NAME" "$POSTGRES_YML"
+deploy_stack "$PG_STACK_NAME" "$ENV_DIR/$POSTGRES_YML"
 wait_replicas_stable "${PG_STACK_NAME}_postgres-shared" 240 || true
 
 log "=== DÉPLOIEMENT KEYCLOAK ==="
-deploy_stack "$KC_STACK_NAME" "$KEYCLOAK_YML"
+deploy_stack "$KC_STACK_NAME" "$ENV_DIR/$KEYCLOAK_YML"
 wait_replicas_stable "${KC_STACK_NAME}_keycloak" 300 || true
 
 # 3) Probe
