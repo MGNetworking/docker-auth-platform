@@ -99,7 +99,7 @@ trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 # Helpers
 # =========================
 service_exists() {
-  docker service inspect "$1" >/dev/null 2>&1
+  docker stack ls --format '{{.Name}}' | grep -Fxq "$1"
 }
 
 wait_docker_ready() {
@@ -184,12 +184,15 @@ wait_service_replicas_stable() {
 
 force_update_service() {
   local service="$1"
-  log_message "Force update: $service"
-  if docker service update --force "$service" >/dev/null 2>&1; then
-    log_message "Force update OK: $service"
+  local stack_name="$(docker service ls --format '{{.Name}}' | grep -E "$service")"
+  log_message "Force update: $stack_name"
+  [[ -z "$stack_name" ]] && return 1
+
+  if docker service update --force "$stack_name" >/dev/null 2>&1; then
+    log_message "Force update OK: $stack_name"
     return 0
   fi
-  log_message "ERREUR: échec du force update sur $service"
+  log_message "ERREUR: échec du force update sur $stack_name"
   return 1
 }
 
@@ -229,9 +232,12 @@ sleep 15
 
 # 1) Traefik
 if service_exists "$TRAEFIK_STACK_NAME"; then
-  wait_service_replicas_stable "$TRAEFIK_STACK_NAME" 120 || force_update_service "$TRAEFIK_STACK_NAME"
-  wait_service_replicas_stable "$TRAEFIK_STACK_NAME" 180 || true
-  check_traefik_http || true
+  if ! wait_service_replicas_stable "$TRAEFIK_STACK_NAME" 180; then
+    force_update_service "$TRAEFIK_STACK_NAME" || true
+    wait_service_replicas_stable "$TRAEFIK_STACK_NAME" 240 || true
+  else
+    log_message "Redis déjà stable: pas de redémarrage forcé."
+  fi
 else
   log_message "INFO: service Traefik absent ($TRAEFIK_STACK_NAME)."
 fi
