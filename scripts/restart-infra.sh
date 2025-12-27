@@ -213,10 +213,10 @@ check_traefik_http() {
 # =========================
 log_message "=== Démarrage restart-docker-stacks ==="
 log_message "Services ciblés:"
-log_message "  Traefik              : $TRAEFIK_SERVICE"
+log_message "  Traefik              : $TRAEFIK_STACK_NAME"
 log_message "  Redis                : $REDIS_SERVICE"
-log_message "  PostgreSQL           : $POSTGRES_SERVICE"
-log_message "  Keycloak             : $KEYCLOAK_SERVICE"
+log_message "  PostgreSQL           : $PG_STACK_NAME"
+log_message "  Keycloak             : $KC_STACK_NAME"
 log_message "  ENV_FILES            : $ENV_FILES"
 log_message "  LOG_DIR              : $LOG_DIR"
 log_message " LOG_FILE              : $LOG_FILE"
@@ -228,58 +228,58 @@ log_message "Stabilisation système (15s)..."
 sleep 15
 
 # 1) Traefik
-if service_exists "$TRAEFIK_SERVICE"; then
-  wait_service_replicas_stable "$TRAEFIK_SERVICE" 120 || force_update_service "$TRAEFIK_SERVICE"
-  wait_service_replicas_stable "$TRAEFIK_SERVICE" 180 || true
+if service_exists "$TRAEFIK_STACK_NAME"; then
+  wait_service_replicas_stable "$TRAEFIK_STACK_NAME" 120 || force_update_service "$TRAEFIK_STACK_NAME"
+  wait_service_replicas_stable "$TRAEFIK_STACK_NAME" 180 || true
   check_traefik_http || true
 else
-  log_message "INFO: service Traefik absent ($TRAEFIK_SERVICE)."
+  log_message "INFO: service Traefik absent ($TRAEFIK_STACK_NAME)."
 fi
 
 # 2) Redis
-if service_exists "$REDIS_SERVICE"; then
-  if ! wait_service_replicas_stable "$REDIS_SERVICE" 180; then
-    force_update_service "$REDIS_SERVICE" || true
-    wait_service_replicas_stable "$REDIS_SERVICE" 240 || true
+if service_exists "$REDIS_STACK_NAME"; then
+  if ! wait_service_replicas_stable "$REDIS_STACK_NAME" 180; then
+    force_update_service "$REDIS_STACK_NAME" || true
+    wait_service_replicas_stable "$REDIS_STACK_NAME" 240 || true
   else
     log_message "Redis déjà stable: pas de redémarrage forcé."
   fi
 else
-  log_message "INFO: service Redis absent ($REDIS_SERVICE)."
+  log_message "INFO: service Redis absent ($REDIS_STACK_NAME)."
 fi
 
 # 3) PostgreSQL
-if service_exists "$POSTGRES_SERVICE"; then
-  if ! wait_service_replicas_stable "$POSTGRES_SERVICE" 180; then
-    force_update_service "$POSTGRES_SERVICE" || exit 1
-    wait_service_replicas_stable "$POSTGRES_SERVICE" 240 || true
+if service_exists "$PG_STACK_NAME"; then
+  if ! wait_service_replicas_stable "$PG_STACK_NAME" 180; then
+    force_update_service "$PG_STACK_NAME" || exit 1
+    wait_service_replicas_stable "$PG_STACK_NAME" 240 || true
   else
     log_message "PostgreSQL déjà stable: pas de redémarrage forcé."
   fi
 else
-  log_message "ERREUR: service PostgreSQL absent ($POSTGRES_SERVICE)."
+  log_message "ERREUR: service PostgreSQL absent ($PG_STACK_NAME)."
   exit 1
 fi
 
 # 4) Keycloak
-if service_exists "$KEYCLOAK_SERVICE"; then
-  if ! wait_service_replicas_stable "$KEYCLOAK_SERVICE" 180; then
-    force_update_service "$KEYCLOAK_SERVICE" || exit 1
-    wait_service_replicas_stable "$KEYCLOAK_SERVICE" 240 || true
+if service_exists "$KC_STACK_NAME"; then
+  if ! wait_service_replicas_stable "$KC_STACK_NAME" 180; then
+    force_update_service "$KC_STACK_NAME" || exit 1
+    wait_service_replicas_stable "$KC_STACK_NAME" 240 || true
   else
     log_message "Keycloak déjà stable: pas de redémarrage forcé."
   fi
 else
-  log_message "ERREUR: service Keycloak absent ($KEYCLOAK_SERVICE)."
+  log_message "ERREUR: service Keycloak absent ($KC_STACK_NAME)."
   exit 1
 fi
 
 # Résumé
 log_message "Vérification finale des replicas:"
-log_message "Traefik:   $(docker service ls --filter name="$TRAEFIK_SERVICE" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
-log_message "Redis:     $(docker service ls --filter name="$REDIS_SERVICE" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
-log_message "PostgreSQL:$(docker service ls --filter name="$POSTGRES_SERVICE" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
-log_message "Keycloak:  $(docker service ls --filter name="$KEYCLOAK_SERVICE" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
+log_message "Traefik:   $(docker service ls --filter name="$TRAEFIK_STACK_NAME" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
+log_message "Redis:     $(docker service ls --filter name="$REDIS_STACK_NAME" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
+log_message "PostgreSQL:$(docker service ls --filter name="$PG_STACK_NAME" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
+log_message "Keycloak:  $(docker service ls --filter name="$KC_STACK_NAME" --format "{{.Replicas}}" 2>/dev/null || echo 'N/A')"
 
 log_message "=== Script terminé ==="
 exit 0

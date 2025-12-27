@@ -32,7 +32,7 @@ services:
 
     volumes:
       - keycloak_data:/opt/keycloak/data
-      - ../../script/wait-for-it.sh:/wait-for-it.sh:ro
+      - ../../scripts/wait-for-it.sh:/wait-for-it.sh:ro
 
     secrets:
       - pg_password
