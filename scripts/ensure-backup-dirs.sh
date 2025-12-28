@@ -12,7 +12,7 @@ cd "$PROJECT_ROOT"
 # Chargement des fichiers .env
 # =========================
 
-ENV_DIR="$PROJECT_ROOT/../environments/homeLab"
+ENV_DIR="$PROJECT_ROOT/environments/homeLab"
 
 shopt -s nullglob
 ENV_FILES=(
@@ -54,11 +54,15 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 trap 'rc=$?; log ERROR "Échec (rc=$rc) à la ligne $LINENO"; exit $rc' ERR
 
 log INFO "=== START ENSURE BACKUP DIRS ==="
+log INFO "Script dir   : $SCRIPT_DIR"
 log INFO "Project root : $PROJECT_ROOT"
 log INFO "Env dir      : $ENV_DIR"
 log INFO "Env files    : ${ENV_FILES[*]}"
 log INFO "Log file     : $LOG_FILE"
 
+# =========================
+# Dossiers backups
+# =========================
 BASE_DIR="$PROJECT_ROOT/postgres_home/backups"
 
 DIRS=(

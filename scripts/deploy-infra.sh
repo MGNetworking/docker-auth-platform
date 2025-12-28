@@ -75,7 +75,7 @@ set +a
 # -------------------------------------------------------------------
 
 ENSURE_INFRA_SCRIPT="$PROJECT_ROOT/scripts/ensure-infra.sh"
-ENSURE_BACKUP_DIRS_SCRIPT="$PROJECT_ROOT/postgres_home/scripts/ensure-backup-dirs.sh"
+ENSURE_BACKUP_DIRS_SCRIPT="$PROJECT_ROOT/scripts/ensure-backup-dirs.sh"
 MAX_WAIT="${MAX_WAIT:-420}"
 WAIT_INTERVAL="${WAIT_INTERVAL:-10}"
 
