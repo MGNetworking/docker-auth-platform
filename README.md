@@ -12,8 +12,6 @@
     - [ensure-infra.sh](#ensure-infrash)
     - [deploy-infra.sh](#deploy-infrash)
     - [restart-infra.sh](#restart-infrash)
-    - [Scripts de backup PostgreSQL](#scripts-de-backup-postgresql)
-- [Droits d’exécution des scripts](#droits-dexécution-des-scripts)
 - [Sauvegardes PostgreSQL](#sauvegardes-postgresql)
 - [Restauration PostgreSQL](#restauration-postgresql)
 - [Exposition Keycloak](#exposition-keycloak)
@@ -31,6 +29,7 @@ Cet environnement permet de tester et d’exposer des API au public de manière 
 la production, sans dépendre d’une infrastructure cloud externe.
 
 La plateforme est déployée et exploitée via Docker Swarm, avec une attention particulière portée à :
+
 - la sécurité (réseaux overlay, secrets, exposition contrôlée)
 - la persistance des données
 - les sauvegardes PostgreSQL
@@ -70,27 +69,26 @@ Tous les services communiquent via des **réseaux overlay**.
 ├── environments/
 │   └── homeLab/
 │       ├── .env
+│       ├── config.env
 │       ├── traefik-stack.yml
 │       ├── redis-stack.yml
 │       ├── postgresql-stack.yml
 │       └── keycloak-stack.yml
 ├── postgres_home/
 │   ├── backups/
-│   │   ├── daily/
-│   │   └── manual/
 │   ├── init/
 │   └── scripts/
-│       ├── ensure-backup-dirs.sh
 │       ├── backup-daily-cluster.sh
 │       ├── backup-manual.sh
 │       ├── restore-daily-cluster.sh
 │       ├── restore-manual-db.sh
 │       └── restore-manual-schema.sh
 ├── scripts/
-│   ├── ensure-infra.sh
 │   ├── deploy-infra.sh
-│   ├── restart-infra.sh 
+│   ├── ensure-backup-dirs.sh
+│   ├── ensure-infra.sh
 │   ├── reset-infra.sh
+│   ├── restart-infra.sh 
 │   └── wait-for-it.sh
 ├── secrets/
 │   ├── secrets.manifest
@@ -128,54 +126,146 @@ Vérification :
 
 ## Scripts
 
-### ensure-infra.sh
+Les scripts de ce dépôt constituent une chaîne d’exploitation complète permettant :
 
-- Attend Docker
-- Initialise Swarm si nécessaire
-- Crée les réseaux overlay déclarés dans `.env`
-- Idempotent
+- l’initialisation de l’infrastructure Docker Swarm,
+- le déploiement contrôlé des stacks,
+- la reprise de service après redémarrage du NAS,
+- la sauvegarde et la restauration explicites des données PostgreSQL.
+
+L’ensemble est conçu pour être idempotent, traçable et exécutable manuellement, sans automatisme destructif implicite.
 
 ### deploy-infra.sh
 
-- Appelle `ensure-infra.sh`
-- Déploie les stacks dans l’ordre :
-    1. Traefik
-    2. Redis
-    3. PostgreSQL
-    4. Keycloak
-- Options :
-    - `--force`
-    - `--no-wait`
+Script principal de déploiement de l’infrastructure.
+Il :
+
+- appelle ensure-infra.sh,
+- déploie Traefik, Redis, PostgreSQL puis Keycloak,
+- attend la stabilisation des services.
+
+Options :
+
+- ``--force`` : redéploiement forcé,
+- ``--no-wait`` : pas d’attente de stabilisation.
+
+### ensure-backup-dirs.sh
+
+Prépare l’arborescence des sauvegardes PostgreSQL côté hôte.
+
+### ensure-infra.sh
+
+Script de prérequis :
+
+- attend Docker,
+- initialise Swarm si nécessaire,
+- crée les réseaux overlay,
+- garantit un socle valide avant déploiement.
+
+### reset-infra.sh
+
+Script de réinitialisation contrôlée de l’infrastructure Docker Swarm.
+
+Il permet :
+
+* supprime les stacks ciblées,
+* supprime les volumes ciblés,
+* exécute optionnellement un nettoyage Docker global (docker system prune -a --volumes),
+* demande une confirmation interactive par défaut.
+
+Options :
+
+* --yes : pas de confirmation interactive
+* --no-prune : ne pas exécuter docker system prune -a --volumes
+* --stacks "s1 s2 ..." : remplace la liste des stacks à supprimer
+* --volumes "v1 v2 ..." : remplace la liste des volumes à supprimer
+* -h, --help : affiche l’aide
 
 ### restart-infra.sh
 
-- Script post-reboot NAS
-- Redémarrage contrôlé des services
-- Logs persistants
+Script post-reboot NAS :
 
-### Scripts de backup PostgreSQL
+- vérifie l’état de Docker et Swarm,
+- relance uniquement les services nécessaires,
+- journalise les actions.
 
-- `ensure-backup-dirs.sh` : prépare l’arborescence
-- `backup-daily-cluster.sh` : dump global quotidien + purge 30 jours
-- `backup-manual.sh` : dump interactif (DB ou schema)
+### wait-for-it.sh
+
+Script utilitaire de synchronisation, utilisé pour attendre la disponibilité effective des services.
 
 ---
 
-## Droits d’exécution des scripts
+## Scripts de backup PostgreSQL
 
-Après clonage du dépôt, **les scripts doivent être rendus exécutables** :
+Ensemble de scripts d’exploitation PostgreSQL, conçus pour fonctionner avec un stockage monté côté hôte (`postgres_home/backups/`) et l’usage des secrets Docker (`pg_password`).
 
-```bash
-chmod +x scripts/*.sh
-chmod +x postgres_home/scripts/*.sh
-chmod +x secrets/*.sh
-```
+### backup-daily-cluster.sh
 
-Recommandé :
+Backup quotidien du cluster complet (toutes les bases) via `pg_dumpall`.
+Il :
 
-```bash
-find . -name "*.sh" -type f -exec chmod +x {} \;
-```
+- génère **un fichier par jour** au format `CLUSTER-YYYY-MM-DD.sql.gz`,
+- évite les doublons (si le fichier du jour existe, le script *skip*),
+- purge automatiquement les fichiers au-delà d’une rétention configurable.
+
+Paramètres :
+
+- `PG_BACKUP_KEEP_DAYS` : durée de rétention (défaut 30 jours)
+
+### backup-manual.sh
+
+Backup manuel interactif.
+Il :
+
+- propose un choix :
+  - BD complète (schéma + données)
+  - schema-only (un schéma d’une base),
+- liste les bases/schémas et sélection par numéro,
+- écrit des fichiers horodatés compressés (`.sql.gz`) dans :
+  - `/var/backups/manual/BD/`
+  - `/var/backups/manual/schema/`
+
+### restore-daily-cluster.sh
+
+Restauration d’un dump cluster quotidien (format `pg_dumpall`) depuis `backups/daily/cluster/`.
+Il :
+
+- demande une confirmation explicite (`RESTORE-CLUSTER`),
+- stoppe au minimum la stack Keycloak,
+- supprime la stack PostgreSQL et le volume de données (restauration sur volume neuf),
+- redéploie PostgreSQL puis restaure le dump.
+
+Usage :
+
+- `./postgres_home/scripts/restore-daily-cluster.sh <backup_file.sql.gz>`
+
+### restore-manual-db.sh
+
+Restauration d’une base complète depuis `backups/manual/BD/`.
+Il :
+
+- demande une confirmation explicite (`RESTORE-DB`),
+- termine les connexions actives,
+- drop + create de la base ciblée,
+- restaure le dump compressé.
+
+Usage :
+
+- `./postgres_home/scripts/restore-manual-db.sh <db_name> <backup_file.sql.gz>`
+
+### restore-manual-schema.sh
+
+Restauration d’un schéma depuis `backups/manual/schema/`.
+Il :
+
+- demande une confirmation explicite (`RESTORE-SCHEMA`),
+- drop schema cascade + recreate,
+- restaure le dump compressé dans la base ciblée.
+
+Usage :
+
+- `./postgres_home/scripts/restore-manual-schema.sh <db_name> <schema_name> <backup_file.sql.gz>`
+
 
 ---
 
@@ -210,7 +300,7 @@ find . -name "*.sh" -type f -exec chmod +x {} \;
 
 ---
 
-## Notes pour recruteurs
+## Positionnement technique du projet
 
 Ce projet démontre :
 
