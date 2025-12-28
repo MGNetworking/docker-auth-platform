@@ -82,7 +82,7 @@ require_dirs() {
 list_databases() {
   docker exec "$CONTAINER_ID" sh -c "
     export PGPASSWORD=\"\$(cat /run/secrets/pg_password)\"
-    psql -U postgres -Atc \"SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname;\"
+    psql -U \"$USER_BD\" -d \"$DB_NAME\" -Atc \"SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname;\"
   "
 }
 
@@ -110,23 +110,29 @@ choose_from_list() {
 
   [ "$n" -gt 0 ] || die "Liste vide: $title"
 
-  echo ""
-  echo "=== $title ==="
+  # IMPORTANT:
+  # - Tout l'affichage (menu) sur STDERR (>&2)
+  # - Seul le choix final sur STDOUT (capturable dans une variable)
+  echo "" >&2
+  echo "=== $title ===" >&2
+
   local i
   for i in "${!items[@]}"; do
-    printf "  %2d) %s\n" "$((i+1))" "${items[$i]}"
+    printf "  %2d) %s\n" "$((i+1))" "${items[$i]}" >&2
   done
 
-  echo ""
+  echo "" >&2
+
   local choice
   while true; do
     read -r -p "Choisissez un numéro (1-$n): " choice
-    [[ "$choice" =~ ^[0-9]+$ ]] || { echo "Entrée invalide."; continue; }
-    [ "$choice" -ge 1 ] && [ "$choice" -le "$n" ] || { echo "Hors plage."; continue; }
-    echo "${items[$((choice-1))]}"
+    [[ "$choice" =~ ^[0-9]+$ ]] || { echo "Entrée invalide." >&2; continue; }
+    [ "$choice" -ge 1 ] && [ "$choice" -le "$n" ] || { echo "Hors plage." >&2; continue; }
+    printf "%s" "${items[$((choice-1))]}"   # <-- uniquement le texte choisi sur stdout
     return 0
   done
 }
+
 
 log INFO "Service   : $SERVICE"
 log INFO "Container : $CONTAINER_ID"
@@ -153,7 +159,9 @@ log INFO "Mode choisi : $mode"
 # Charger DBs
 mapfile -t DBS < <(list_databases)
 [ "${#DBS[@]}" -gt 0 ] || die "Aucune base trouvée."
-log INFO "DB count    : ${#DBS[@]}"
+log INFO "Bases détectées (${#DBS[@]}) : ${DBS[*]}"
+log INFO "Sélection de la base à sauvegarder..."
+
 
 if [ "$mode" = "1" ]; then
   db="$(choose_from_list "Sélection de la base" "${DBS[@]}")"
