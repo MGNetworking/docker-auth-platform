@@ -3,7 +3,9 @@
 ## Sommaire
 
 - [Présentation](#présentation)
+- [Philosophie générale](#philosophie-générale)
 - [Architecture générale](#architecture-générale)
+- [Rôle et responsabilités des composants](#rôle-et-responsabilités-des-composants)
 - [Technologies](#technologies)
 - [Structure du dépôt](#structure-du-dépôt)
 - [Prérequis](#prérequis)
@@ -21,22 +23,33 @@
 
 ## Présentation
 
-Ce projet met à disposition un environnement technique destiné à fournir un système d’authentification SSO basé sur
-Keycloak, associé à une base de données relationnelle (PostgreSQL) et à une base de données en mémoire non
-relationnelle (Redis).
+Ce projet met à disposition un **environnement HomeLab professionnel** destiné à fournir un système d’authentification
+SSO basé sur **Keycloak**, associé à une base de données relationnelle (**PostgreSQL**) et à une base de données en
+mémoire (**Redis**).
 
-Cet environnement permet de tester et d’exposer des API au public de manière sécurisée, dans des conditions proches de
-la production, sans dépendre d’une infrastructure cloud externe.
+L’objectif est de disposer d’un socle technique **réaliste, documenté et exploitable**, permettant :
 
-La plateforme est déployée et exploitée via Docker Swarm, avec une attention particulière portée à :
+- de tester des API dans des conditions proches de la production,
+- d’exposer des services de manière sécurisée,
+- de démontrer une maîtrise des problématiques d’infrastructure et d’exploitation.
 
-- la sécurité (réseaux overlay, secrets, exposition contrôlée)
-- la persistance des données
-- les sauvegardes PostgreSQL
+---
 
-la reprise de service automatisée après redémarrage.
+## Philosophie générale
 
-Ce dépôt est volontairement orienté infrastructure et exploitation, et sert de socle technique pour des projets applicatifs nécessitant une gestion d’identité centralisée.
+Ce dépôt est volontairement orienté **infrastructure et exploitation**, et non développement applicatif.
+
+Les principes directeurs sont :
+
+- aucune automatisation destructrice implicite,
+- scripts explicites, traçables et auditables,
+- séparation stricte entre :
+    - infrastructure,
+    - données,
+    - secrets,
+    - sauvegardes,
+- compréhension fine des mécanismes sous-jacents (Docker, PostgreSQL, réseau).
+
 ---
 
 ## Architecture générale
@@ -49,6 +62,73 @@ Ce dépôt est volontairement orienté infrastructure et exploitation, et sert d
 - **Redis** (cache / sessions)
 
 Tous les services communiquent via des **réseaux overlay**.
+
+---
+
+## Rôle et responsabilités des composants
+
+### PostgreSQL
+
+Le conteneur PostgreSQL fournit un **serveur PostgreSQL complet**, initialisé avec :
+
+- un **super-user** défini par `POSTGRES_USER`,
+- un mot de passe fourni via `POSTGRES_PASSWORD_FILE` (Docker secret).
+
+Ce super-user possède les **droits complets sur l’ensemble du cluster PostgreSQL**.
+
+Important :
+
+- PostgreSQL impose que **toute commande soit exécutée depuis une base existante**.
+- Il est impossible d’agir directement « au niveau du serveur » sans être connecté à une base.
+- Les bases `postgres` et `template1` servent de **bases techniques** permettant l’administration du cluster.
+- Les droits sont portés par le **rôle (user)**, jamais par la base elle-même.
+
+Cette distinction est essentielle pour comprendre les scripts de sauvegarde et de restauration.
+
+### Keycloak
+
+Keycloak est utilisé comme **serveur d’identité centralisé (IAM)** :
+
+- gestion des utilisateurs,
+- gestion des rôles et des permissions,
+- fédération et authentification des applications.
+
+Il repose sur **PostgreSQL** pour la persistance des données et sur **Redis** pour certaines fonctions de cache et de
+gestion de sessions.
+
+Lors de la **première initialisation**, un **compte administrateur initial** est créé automatiquement via les variables
+d’environnement :
+
+```yaml
+KEYCLOAK_ADMIN: "admin"
+KEYCLOAK_ADMIN_PASSWORD: "admin"
+```
+
+Ce compte permet l’accès initial à la console d’administration, mais doit être considéré comme temporaire.
+
+Dans une logique de sécurité et de bonnes pratiques :
+
+* un compte administrateur personnalisé est créé (noms explicites, mot de passe fort),
+* les rôles et droits sont vérifiés,
+* le compte administrateur initial est ensuite supprimé ou désactivé.
+
+Cette démarche limite l’usage d’identifiants par défaut et aligne l’environnement sur des conditions proches de la
+production.
+
+### Redis
+
+Redis est utilisé comme **composant auxiliaire** :
+
+- cache,
+- gestion de sessions,
+- amélioration des performances.
+
+Il n’est pas considéré comme source de vérité.
+
+### Traefik & Nginx
+
+- Traefik assure le routage interne HTTP.
+- Nginx NAS gère la terminaison TLS et l’exposition externe.
 
 ---
 
@@ -168,18 +248,18 @@ Script de réinitialisation contrôlée de l’infrastructure Docker Swarm.
 
 Il permet :
 
-* supprime les stacks ciblées,
-* supprime les volumes ciblés,
-* exécute optionnellement un nettoyage Docker global (docker system prune -a --volumes),
-* demande une confirmation interactive par défaut.
+- supprime les stacks ciblées,
+- supprime les volumes ciblés,
+- exécute optionnellement un nettoyage Docker global (docker system prune -a --volumes),
+- demande une confirmation interactive par défaut.
 
 Options :
 
-* --yes : pas de confirmation interactive
-* --no-prune : ne pas exécuter docker system prune -a --volumes
-* --stacks "s1 s2 ..." : remplace la liste des stacks à supprimer
-* --volumes "v1 v2 ..." : remplace la liste des volumes à supprimer
-* -h, --help : affiche l’aide
+- --yes : pas de confirmation interactive
+- --no-prune : ne pas exécuter docker system prune -a --volumes
+- --stacks "s1 s2 ..." : remplace la liste des stacks à supprimer
+- --volumes "v1 v2 ..." : remplace la liste des volumes à supprimer
+- -h, --help : affiche l’aide
 
 ### restart-infra.sh
 
@@ -197,20 +277,32 @@ Script utilitaire de synchronisation, utilisé pour attendre la disponibilité e
 
 ## Scripts de backup PostgreSQL
 
-Ensemble de scripts d’exploitation PostgreSQL, conçus pour fonctionner avec un stockage monté côté hôte (`postgres_home/backups/`) et l’usage des secrets Docker (`pg_password`).
+Ensemble de scripts d’exploitation PostgreSQL, conçus pour fonctionner avec un stockage monté côté hôte (
+`postgres_home/backups/`) et l’usage des secrets Docker (`pg_password`).
 
 ### backup-daily-cluster.sh
 
-Backup quotidien du cluster complet (toutes les bases) via `pg_dumpall`.
-Il :
+Backup quotidien **de l’ensemble des bases du cluster PostgreSQL** dans **un fichier unique**, sans inclure les rôles
+globaux.
+
+Le script :
 
 - génère **un fichier par jour** au format `CLUSTER-YYYY-MM-DD.sql.gz`,
-- évite les doublons (si le fichier du jour existe, le script *skip*),
-- purge automatiquement les fichiers au-delà d’une rétention configurable.
+- regroupe **toutes les bases non template** du cluster dans un seul dump,
+- inclut pour chaque base :
+    - la terminaison des connexions actives,
+    - le `DROP` et le `CREATE` de la base,
+    - la restauration complète du schéma et des données,
+- évite les doublons (si le fichier du jour existe, le script est *skippé*),
+- purge automatiquement les fichiers au-delà d’une durée de rétention configurable.
+
+Le dump est construit de manière à pouvoir être **rejoué intégralement** depuis une base d’administration PostgreSQL (
+par défaut `postgres` ou `template1`), sans dépendance aux rôles globaux du cluster.
 
 Paramètres :
 
-- `PG_BACKUP_KEEP_DAYS` : durée de rétention (défaut 30 jours)
+- `PG_BACKUP_KEEP_DAYS` : durée de rétention des sauvegardes (défaut : 30 jours)
+- `ADMIN_DB` : base PostgreSQL utilisée comme point d’exécution administratif (défaut : `postgres`)
 
 ### backup-manual.sh
 
@@ -218,26 +310,43 @@ Backup manuel interactif.
 Il :
 
 - propose un choix :
-  - BD complète (schéma + données)
-  - schema-only (un schéma d’une base),
+    - BD complète (schéma + données)
+    - schema-only (un schéma d’une base),
 - liste les bases/schémas et sélection par numéro,
 - écrit des fichiers horodatés compressés (`.sql.gz`) dans :
-  - `/var/backups/manual/BD/`
-  - `/var/backups/manual/schema/`
+    - `/var/backups/manual/BD/`
+    - `/var/backups/manual/schema/`
 
 ### restore-daily-cluster.sh
 
-Restauration d’un dump cluster quotidien (format `pg_dumpall`) depuis `backups/daily/cluster/`.
-Il :
+Restauration complète **de l’ensemble des bases du cluster PostgreSQL** à partir d’un fichier unique
+`CLUSTER-YYYY-MM-DD.sql.gz` généré par `backup-daily-cluster.sh`.
 
-- demande une confirmation explicite (`RESTORE-CLUSTER`),
-- stoppe au minimum la stack Keycloak,
-- supprime la stack PostgreSQL et le volume de données (restauration sur volume neuf),
-- redéploie PostgreSQL puis restaure le dump.
+Le script :
+
+- demande une **confirmation explicite** avant toute action destructrice,
+- stoppe **de manière non destructive** la stack Keycloak (scale à 0),
+- se connecte à une **base d’administration PostgreSQL** (`ADMIN_DB`) pour piloter la restauration,
+- exécute le fichier de sauvegarde qui :
+    - termine les connexions actives,
+    - supprime et recrée chaque base concernée,
+    - restaure intégralement schéma et données,
+- relance ensuite la stack Keycloak.
+
+La restauration est effectuée **sans manipulation des rôles globaux**, en s’appuyant sur le super-user
+défini lors de l’initialisation du conteneur PostgreSQL.
+
+Ce script permet une **reprise complète et maîtrisée de l’état des bases**, sans redéploiement
+de l’infrastructure ni recréation des volumes.
 
 Usage :
 
-- `./postgres_home/scripts/restore-daily-cluster.sh <backup_file.sql.gz>`
+- `./postgres_home/scripts/restore-daily-cluster.sh <CLUSTER-YYYY-MM-DD.sql.gz>`
+
+Paramètres :
+
+- `ADMIN_DB` : base PostgreSQL utilisée comme point d’exécution administratif
+  (défaut : `postgres`, peut être remplacée par `template1` si nécessaire)
 
 ### restore-manual-db.sh
 
@@ -265,7 +374,6 @@ Il :
 Usage :
 
 - `./postgres_home/scripts/restore-manual-schema.sh <db_name> <schema_name> <backup_file.sql.gz>`
-
 
 ---
 
