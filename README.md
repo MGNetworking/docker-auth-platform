@@ -311,8 +311,10 @@ Il :
 
 - propose un choix :
     - BD complète (schéma + données)
-    - schema-only (un schéma d’une base),
-- liste les bases/schémas et sélection par numéro,
+    - schema-only (un schéma d’une base)
+- liste les bases/schémas et sélection par numéro 
+- exécute le backup depuis le conteneur PostgreSQL actif
+- génère des fichiers horodatés et compressés (.sql.gz)
 - écrit des fichiers horodatés compressés (`.sql.gz`) dans :
     - `/var/backups/manual/BD/`
     - `/var/backups/manual/schema/`
@@ -350,30 +352,41 @@ Paramètres :
 
 ### restore-manual-db.sh
 
-Restauration d’une base complète depuis `backups/manual/BD/`.
+Restauration **manuelle à chaud** d’une base PostgreSQL complète depuis `backups/manual/BD/`.
+
 Il :
 
-- demande une confirmation explicite (`RESTORE-DB`),
-- termine les connexions actives,
-- drop + create de la base ciblée,
-- restaure le dump compressé.
+- demande une confirmation explicite avant exécution
+- coupe les connexions actives à la base (les services connectés peuvent être impactés)
+- supprime puis recrée la base ciblée (`DROP DATABASE` / `CREATE DATABASE`)
+- restaure le dump compressé (`.sql.gz`) dans la base recréée
+- n’arrête ni ne redémarre les services applicatifs (la gestion de leur cycle de vie est volontairement hors périmètre)
+- déduit automatiquement le nom de la base depuis le nom du fichier et vérifie sa cohérence avec `DB_NAME`.
 
 Usage :
 
-- `./postgres_home/scripts/restore-manual-db.sh <db_name> <backup_file.sql.gz>`
+- `./postgres_home/scripts/restore-manual-db.sh <backup_file.sql.gz>`
+
+Exemple :
+
+- `./postgres_home/scripts/restore-manual-db.sh DB-2025-12-21_14-05-00-kc_db.sql.gz`
 
 ### restore-manual-schema.sh
 
-Restauration d’un schéma depuis `backups/manual/schema/`.
-Il :
+Restauration **destructive** d’un schéma PostgreSQL depuis `postgres_home/backups/manual/schema/`.
 
-- demande une confirmation explicite (`RESTORE-SCHEMA`),
-- drop schema cascade + recreate,
-- restaure le dump compressé dans la base ciblée.
+Le script :
+
+- demande une confirmation explicite avant exécution
+- **déduit automatiquement la base et le schéma depuis le nom du fichier**
+- termine les connexions actives sur la base cible
+- supprime le schéma (`DROP SCHEMA … CASCADE`)
+- drop schema cascade + recreate
+- restaure le dump compressé (le schéma est recréé par le dump)
 
 Usage :
 
-- `./postgres_home/scripts/restore-manual-schema.sh <db_name> <schema_name> <backup_file.sql.gz>`
+- `./postgres_home/scripts/restore-manual-schema.sh <backup_file.sql.gz>`
 
 ---
 
