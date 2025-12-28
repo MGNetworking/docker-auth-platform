@@ -12,7 +12,6 @@ cd "$PROJECT_ROOT"
 # =========================
 # Chargement des fichiers .env
 # =========================
-
 ENV_DIR="$PROJECT_ROOT/environments/homeLab"
 
 shopt -s nullglob
@@ -29,12 +28,15 @@ fi
 
 set -a
 for CONF_FILE in "${ENV_FILES[@]}"; do
+  # shellcheck source=/dev/null
   source "$CONF_FILE"
 done
 set +a
 
 : "${PG_STACK_NAME:?PG_STACK_NAME manquant dans .env}"
-: "${LOG_DIR:?LOG_DIR manquant dans config.env}"
+: "${LOG_DIR:?LOG_DIR manquant (attendu dans config.env ou .env)}"
+: "${USER_BD:?USER_BD manquant dans .env (ex: max_admin)}"
+: "${DB_NAME:?DB_NAME manquant dans .env (ex: kc_db)}"
 
 # =========================
 # Logging (hôte)
@@ -78,6 +80,15 @@ require_dirs() {
   " >/dev/null 2>&1 || die "Dossiers backups absents dans le conteneur. Lancez d'abord: script/ensure-backup-dirs.sh (et vérifiez le mount /var/backups)."
 }
 
+# Wrapper: exécuter psql dans le conteneur avec secret password
+psql_in_container() {
+  # args passés tels quels à psql
+  docker exec "$CONTAINER_ID" sh -c "
+    export PGPASSWORD=\"\$(cat /run/secrets/pg_password)\"
+    psql -U \"$USER_BD\" $*
+  "
+}
+
 # Liste des DB (hors templates) -> tableau bash
 list_databases() {
   docker exec "$CONTAINER_ID" sh -c "
@@ -91,7 +102,7 @@ list_schemas() {
   local db="$1"
   docker exec "$CONTAINER_ID" sh -c "
     export PGPASSWORD=\"\$(cat /run/secrets/pg_password)\"
-    psql -U postgres -d '$db' -Atc \"
+    psql -U \"$USER_BD\" -d '$db' -Atc \"
       SELECT nspname
       FROM pg_namespace
       WHERE nspname NOT IN ('pg_catalog','information_schema')
@@ -133,10 +144,11 @@ choose_from_list() {
   done
 }
 
-
 log INFO "Service   : $SERVICE"
 log INFO "Container : $CONTAINER_ID"
 log INFO "Timestamp : $TS"
+log INFO "DB_NAME   : $DB_NAME"
+log INFO "USER_BD   : $USER_BD"
 
 require_dirs
 
@@ -156,12 +168,15 @@ while true; do
 done
 log INFO "Mode choisi : $mode"
 
-# Charger DBs
-mapfile -t DBS < <(list_databases)
-[ "${#DBS[@]}" -gt 0 ] || die "Aucune base trouvée."
+# Charger DBs (avec diagnostic clair si auth/connexion échoue)
+if ! DBS_RAW="$(list_databases)"; then
+  die "Impossible de lister les bases. Vérifiez USER_BD='$USER_BD' et le secret /run/secrets/pg_password."
+fi
+
+mapfile -t DBS <<< "$DBS_RAW"
+[ "${#DBS[@]}" -gt 0 ] || die "Aucune base trouvée (après connexion OK)."
 log INFO "Bases détectées (${#DBS[@]}) : ${DBS[*]}"
 log INFO "Sélection de la base à sauvegarder..."
-
 
 if [ "$mode" = "1" ]; then
   db="$(choose_from_list "Sélection de la base" "${DBS[@]}")"
@@ -172,7 +187,7 @@ if [ "$mode" = "1" ]; then
 
   docker exec "$CONTAINER_ID" sh -c "
     export PGPASSWORD=\"\$(cat /run/secrets/pg_password)\"
-    pg_dump -U postgres -d '$db' | gzip -9 > '$out'
+    pg_dump -U \"$USER_BD\" -d '$db' | gzip -9 > '$out'
   "
 
   log INFO "OK: backup DB terminé."
@@ -184,7 +199,11 @@ fi
 db="$(choose_from_list "Sélection de la base (pour lister ses schemas)" "${DBS[@]}")"
 log INFO "DB choisie  : $db"
 
-mapfile -t SCHEMAS < <(list_schemas "$db")
+if ! SCHEMAS_RAW="$(list_schemas "$db")"; then
+  die "Impossible de lister les schemas de '$db'. Vérifiez les droits de USER_BD='$USER_BD'."
+fi
+
+mapfile -t SCHEMAS <<< "$SCHEMAS_RAW"
 [ "${#SCHEMAS[@]}" -gt 0 ] || die "Aucun schema utilisateur trouvé dans la base '$db'."
 log INFO "Schemas count: ${#SCHEMAS[@]}"
 
@@ -196,7 +215,7 @@ log INFO "OUT          : $out"
 
 docker exec "$CONTAINER_ID" sh -c "
   export PGPASSWORD=\"\$(cat /run/secrets/pg_password)\"
-  pg_dump -U postgres -d '$db' --schema='$schema' | gzip -9 > '$out'
+  pg_dump -U \"$USER_BD\" -d '$db' --schema='$schema' | gzip -9 > '$out'
 "
 
 log INFO "OK: backup schema terminé."
